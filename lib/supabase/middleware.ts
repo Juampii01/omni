@@ -5,9 +5,14 @@ import type { Database } from "./types"
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
+  // Guard: si no hay env vars configuradas, pasar sin redirigir
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse
+  }
+
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -24,37 +29,55 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  // IMPORTANT: usar getUser() — valida el token contra Supabase (no solo JWT local)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
-  const isAuthPage = pathname.startsWith("/login") ||
+  const isAuthPage =
+    pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password")
 
-  // Si no hay env vars configuradas, no redirigir — evita loop
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return supabaseResponse
-  }
+  const hasUser = !!user
 
-  // Error de auth → tratar como sin sesión pero no redirigir desde páginas de auth
-  const hasUser = !error && !!user
-
+  // Usuario sin sesión intentando acceder a ruta protegida
   if (!hasUser && !isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
-    url.searchParams.set("redirectTo", pathname)
-    return NextResponse.redirect(url)
+    url.searchParams.set("next", pathname)
+    const redirectResponse = NextResponse.redirect(url)
+    // CRÍTICO: propagar cookies de sesión refrescadas en la respuesta de redirect
+    // Sin esto, si el token se refresheó en este request, el refresh se pierde
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
   }
 
-  if (hasUser && pathname === "/login") {
-    const redirectTo = request.nextUrl.searchParams.get("redirectTo") ?? "/"
+  // Usuario autenticado intentando acceder a página de auth
+  if (hasUser && isAuthPage) {
+    const rawNext =
+      request.nextUrl.searchParams.get("next") ??
+      request.nextUrl.searchParams.get("redirectTo") ??
+      "/"
+    // Validar para prevenir open redirect: debe ser ruta interna
+    const safePath = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/"
     const url = request.nextUrl.clone()
-    url.pathname = redirectTo.startsWith("/") ? redirectTo : "/"
+    url.pathname = safePath
     url.search = ""
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    // CRÍTICO: propagar cookies de sesión refrescadas en la respuesta de redirect
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
   }
 
+  // IMPORTANTE: siempre devolver supabaseResponse — nunca crear un nuevo NextResponse.next()
+  // Si se crea una nueva respuesta acá, las cookies seteadas por setAll() se pierden
   return supabaseResponse
 }

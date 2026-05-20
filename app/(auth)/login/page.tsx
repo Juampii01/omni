@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -35,7 +36,10 @@ export default function LoginPage() {
       return
     }
 
-    router.push("/")
+    // Respetar el parámetro `next` para redirigir a donde el usuario quería ir
+    const rawNext = searchParams.get("next") ?? searchParams.get("redirectTo") ?? "/"
+    const destination = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/"
+    router.push(destination)
     router.refresh()
   }
 
