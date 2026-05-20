@@ -25,7 +25,7 @@ export async function getUser(): Promise<AuthUser | null> {
   if (!profile) {
     try {
       const serviceClient = await createServiceClient()
-      const { data: created } = await serviceClient
+      const { data: created } = await (serviceClient as any)
         .from("profiles")
         .insert({
           id: user.id,
