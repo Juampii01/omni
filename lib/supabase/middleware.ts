@@ -24,9 +24,7 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
@@ -35,16 +33,26 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password")
 
-  if (!user && !isAuthPage) {
+  // Si no hay env vars configuradas, no redirigir — evita loop
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse
+  }
+
+  // Error de auth → tratar como sin sesión pero no redirigir desde páginas de auth
+  const hasUser = !error && !!user
+
+  if (!hasUser && !isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirectTo", pathname)
     return NextResponse.redirect(url)
   }
 
-  if (user && pathname === "/login") {
+  if (hasUser && pathname === "/login") {
+    const redirectTo = request.nextUrl.searchParams.get("redirectTo") ?? "/"
     const url = request.nextUrl.clone()
-    url.pathname = "/"
+    url.pathname = redirectTo.startsWith("/") ? redirectTo : "/"
+    url.search = ""
     return NextResponse.redirect(url)
   }
 
