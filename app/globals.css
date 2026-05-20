@@ -1,26 +1,105 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* ── Design System — Omni by Nova Softwares ─────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand */
+  --brand:              163 47% 28%;   /* #236461 — verde polo */
+  --brand-foreground:   0 0% 100%;
+  --brand-soft:         163 33% 94%;   /* #ebf2f1 */
+  --brand-hover:        163 47% 20%;   /* #1a4d4a */
+
+  /* Base */
+  --background:         0 0% 100%;
+  --foreground:         0 0% 4%;       /* #0a0a0a */
+  --card:               0 0% 100%;
+  --card-foreground:    0 0% 4%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 0 0% 4%;
+
+  /* Grays */
+  --muted:              220 9% 97%;    /* #f8f9fa */
+  --muted-foreground:   220 9% 46%;    /* #6b7280 */
+  --secondary:          220 9% 96%;    /* #f3f4f6 */
+  --secondary-foreground: 220 13% 12%;
+
+  /* Borders & inputs */
+  --border:             220 9% 90%;    /* #e5e7eb */
+  --input:              220 9% 90%;
+  --ring:               163 47% 28%;
+
+  /* Primary (= brand) */
+  --primary:            163 47% 28%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Accent */
+  --accent:             220 9% 96%;
+  --accent-foreground:  220 13% 12%;
+
+  /* Alerts */
+  --destructive:        0 72% 51%;     /* #dc2626 */
+  --destructive-foreground: 0 0% 100%;
+  --warning:            38 92% 50%;    /* #f59e0b */
+  --success:            158 64% 32%;   /* #059669 */
+  --info:               221 83% 53%;   /* #2563eb */
+
+  /* Radius */
+  --radius: 0.5rem;
 }
 
+/* ── Tailwind v4 theme mapping ──────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand:                hsl(var(--brand));
+  --color-brand-foreground:     hsl(var(--brand-foreground));
+  --color-brand-soft:           hsl(var(--brand-soft));
+  --color-brand-hover:          hsl(var(--brand-hover));
+  --color-background:           hsl(var(--background));
+  --color-foreground:           hsl(var(--foreground));
+  --color-card:                 hsl(var(--card));
+  --color-card-foreground:      hsl(var(--card-foreground));
+  --color-popover:              hsl(var(--popover));
+  --color-popover-foreground:   hsl(var(--popover-foreground));
+  --color-muted:                hsl(var(--muted));
+  --color-muted-foreground:     hsl(var(--muted-foreground));
+  --color-secondary:            hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-border:               hsl(var(--border));
+  --color-input:                hsl(var(--input));
+  --color-ring:                 hsl(var(--ring));
+  --color-primary:              hsl(var(--primary));
+  --color-primary-foreground:   hsl(var(--primary-foreground));
+  --color-accent:               hsl(var(--accent));
+  --color-accent-foreground:    hsl(var(--accent-foreground));
+  --color-destructive:          hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-warning:              hsl(var(--warning));
+  --color-success:              hsl(var(--success));
+  --color-info:                 hsl(var(--info));
+
+  --font-sans:  var(--font-inter);
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ────────────────────────────────────────────────────────────────── */
+* {
+  border-color: hsl(var(--border));
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
