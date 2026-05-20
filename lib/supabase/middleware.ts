@@ -42,35 +42,15 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password")
 
-  const hasUser = !!user
-
-  // Usuario sin sesión intentando acceder a ruta protegida
-  if (!hasUser && !isAuthPage) {
+  // SOLO redirigir usuarios no autenticados que intentan acceder a rutas protegidas.
+  // NO redirigir usuarios autenticados desde páginas de auth — eso lo maneja
+  // el server component de cada página de auth para evitar loops.
+  if (!user && !isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("next", pathname)
     const redirectResponse = NextResponse.redirect(url)
-    // CRÍTICO: propagar cookies de sesión refrescadas en la respuesta de redirect
-    // Sin esto, si el token se refresheó en este request, el refresh se pierde
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value)
-    })
-    return redirectResponse
-  }
-
-  // Usuario autenticado intentando acceder a página de auth
-  if (hasUser && isAuthPage) {
-    const rawNext =
-      request.nextUrl.searchParams.get("next") ??
-      request.nextUrl.searchParams.get("redirectTo") ??
-      "/"
-    // Validar para prevenir open redirect: debe ser ruta interna
-    const safePath = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/"
-    const url = request.nextUrl.clone()
-    url.pathname = safePath
-    url.search = ""
-    const redirectResponse = NextResponse.redirect(url)
-    // CRÍTICO: propagar cookies de sesión refrescadas en la respuesta de redirect
+    // Propagar cookies de sesión refrescadas
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie.name, cookie.value)
     })
@@ -78,6 +58,5 @@ export async function updateSession(request: NextRequest) {
   }
 
   // IMPORTANTE: siempre devolver supabaseResponse — nunca crear un nuevo NextResponse.next()
-  // Si se crea una nueva respuesta acá, las cookies seteadas por setAll() se pierden
   return supabaseResponse
 }
