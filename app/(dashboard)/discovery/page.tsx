@@ -1,18 +1,45 @@
-import { PageHeader } from "@/components/page-header"
-import { Card, CardContent } from "@/components/ui/card"
-import { Construction } from "lucide-react"
+import { requireAuth } from "@/lib/auth/get-user"
+import { createClient } from "@/lib/supabase/server"
+import { DiscoveryClient } from "./discovery-client"
 
-export default function Page() {
+export const metadata = { title: "Discovery" }
+
+export default async function DiscoveryPage() {
+  const user = await requireAuth()
+  const supabase = await createClient()
+
+  const { data: formsData } = await (supabase as any)
+    .from("discovery_forms")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  const forms = (formsData as any[]) ?? []
+
+  // Fetch response counts for each form
+  let responseCounts: Record<string, number> = {}
+  if (forms.length > 0) {
+    const formIds = forms.map((f: any) => f.id)
+    const { data: countsData } = await (supabase as any)
+      .from("discovery_responses")
+      .select("form_id")
+      .in("form_id", formIds)
+
+    if (countsData) {
+      for (const row of countsData as any[]) {
+        responseCounts[row.form_id] = (responseCounts[row.form_id] ?? 0) + 1
+      }
+    }
+  }
+
+  const formsWithCounts = forms.map((f: any) => ({
+    ...f,
+    response_count: responseCounts[f.id] ?? 0,
+  }))
+
   return (
-    <div className="space-y-6">
-      <PageHeader title="discovery" />
-      <Card className="border-border shadow-sm">
-        <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-          <Construction className="h-10 w-10 text-muted-foreground mb-4" />
-          <p className="text-sm font-medium">En construcción</p>
-          <p className="text-xs text-muted-foreground mt-1">Esta sección está siendo desarrollada. Fase 2+.</p>
-        </CardContent>
-      </Card>
-    </div>
+    <DiscoveryClient
+      initialForms={formsWithCounts}
+      currentUserId={user.id}
+    />
   )
 }

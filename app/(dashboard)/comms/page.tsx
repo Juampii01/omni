@@ -1,18 +1,35 @@
-import { PageHeader } from "@/components/page-header"
-import { Card, CardContent } from "@/components/ui/card"
-import { Construction } from "lucide-react"
+import { requireAuth } from "@/lib/auth/get-user"
+import { createClient } from "@/lib/supabase/server"
+import { CommsClient } from "./comms-client"
 
-export default function Page() {
+export const metadata = { title: "Comunicaciones" }
+
+export default async function CommsPage() {
+  const user = await requireAuth()
+  const supabase = await createClient()
+
+  const [{ data: announcementsData }, { data: profilesData }] = await Promise.all([
+    (supabase as any)
+      .from("announcements")
+      .select("*")
+      .order("is_pinned", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("id, full_name, email"),
+  ])
+
+  const profilesMap: Record<string, { full_name: string | null; email: string }> = {}
+  for (const p of (profilesData as any[]) ?? []) {
+    profilesMap[p.id] = { full_name: p.full_name, email: p.email }
+  }
+
   return (
-    <div className="space-y-6">
-      <PageHeader title="comms" />
-      <Card className="border-border shadow-sm">
-        <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-          <Construction className="h-10 w-10 text-muted-foreground mb-4" />
-          <p className="text-sm font-medium">En construcción</p>
-          <p className="text-xs text-muted-foreground mt-1">Esta sección está siendo desarrollada. Fase 2+.</p>
-        </CardContent>
-      </Card>
-    </div>
+    <CommsClient
+      initialAnnouncements={(announcementsData as any[]) ?? []}
+      profiles={profilesMap}
+      userId={user.id}
+      isAdmin={user.role === "owner" || user.role === "admin"}
+    />
   )
 }
