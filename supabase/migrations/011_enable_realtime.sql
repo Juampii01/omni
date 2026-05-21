@@ -1,13 +1,29 @@
 -- ============================================================
 -- Omni — Migration 011 — Enable Realtime for leads and tasks
 -- ============================================================
--- Agrega las tablas a la publicación supabase_realtime para
--- que los hooks de Supabase Realtime puedan suscribirse a
--- postgres_changes.
---
--- Si falla con "already a member of publication", las tablas
--- ya estaban habilitadas — no es un error real.
+-- Idempotente: solo agrega la tabla si aún no es miembro de
+-- la publicación supabase_realtime.
 -- ============================================================
 
-alter publication supabase_realtime add table public.leads;
-alter publication supabase_realtime add table public.tasks;
+DO $$
+BEGIN
+  -- leads
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename  = 'leads'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.leads;
+  END IF;
+
+  -- tasks
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename  = 'tasks'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+  END IF;
+END $$;
