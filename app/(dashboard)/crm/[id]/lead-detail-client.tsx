@@ -39,7 +39,6 @@ type Lead = {
   notes: string | null
   tags: string[]
   assigned_to: string | null
-  last_contact_at: string | null
   created_at: string
   updated_at: string
 }
@@ -169,7 +168,6 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             Creado {new Date(lead.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
-            {lead.last_contact_at && ` · Último contacto ${timeAgo(lead.last_contact_at)}`}
           </p>
         </div>
       </div>

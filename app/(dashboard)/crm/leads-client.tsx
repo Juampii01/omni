@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -227,6 +228,7 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
   profiles: Profile[]
   departments: Department[]
 }) {
+  const router = useRouter()
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [search, setSearch] = useState("")
   const [filterStage, setFilterStage] = useState("all")
@@ -355,7 +357,7 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
               {filtered.map(lead => {
                 const assignee = getAssignee(lead.assigned_to)
                 return (
-                  <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/40">
+                  <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/40" onClick={() => router.push(`/crm/${lead.id}`)}>
                     <TableCell>
                       <p className="text-sm font-medium">{lead.full_name}</p>
                       {lead.email && <p className="text-xs text-muted-foreground">{lead.email}</p>}
@@ -394,10 +396,13 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(lead)}>
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/crm/${lead.id}`) }}>
+                            Ver detalle
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(lead) }}>
                             <Pencil className="h-4 w-4 mr-2" />Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => requestDelete(lead.id)}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={e => { e.stopPropagation(); requestDelete(lead.id) }}>
                             <Trash2 className="h-4 w-4 mr-2" />Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
