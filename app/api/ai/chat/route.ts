@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 import { requireAuth } from "@/lib/auth/get-user"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceClient } from "@/lib/supabase/server"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -66,17 +66,17 @@ async function getDashboardContext(supabase: Awaited<ReturnType<typeof createCli
   })
 
   const urgentTasks = tasks.filter(t => t.priority === "urgent")
-  const inProgress = tasks.filter(t => t.status === "in_progress")
-  const todo = tasks.filter(t => t.status === "todo")
+  const inProgress  = tasks.filter(t => t.status === "in_progress")
+  const todo        = tasks.filter(t => t.status === "todo")
 
   const taskLines = [
     `  - Total activas: ${tasks.length}`,
     urgentTasks.length > 0 ? `  - URGENTES: ${urgentTasks.map(t => `"${t.title}"`).join(", ")}` : null,
-    inProgress.length > 0 ? `  - En progreso (${inProgress.length}): ${inProgress.slice(0, 3).map(t => `"${t.title}"`).join(", ")}` : null,
-    todo.length > 0 ? `  - Por hacer: ${todo.length}` : null,
+    inProgress.length  > 0 ? `  - En progreso (${inProgress.length}): ${inProgress.slice(0, 3).map(t => `"${t.title}"`).join(", ")}` : null,
+    todo.length        > 0 ? `  - Por hacer: ${todo.length}` : null,
   ].filter(Boolean)
 
-  const bizName = settings?.business_name ?? "la empresa"
+  const bizName  = settings?.business_name ?? "la empresa"
   const currency = settings?.currency ?? "USD"
 
   const ctx = [
@@ -101,9 +101,7 @@ async function getDashboardContext(supabase: Awaited<ReturnType<typeof createCli
 // ── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  try {
-    await requireAuth()
-  } catch {
+  try { await requireAuth() } catch {
     return new Response("No autorizado", { status: 401 })
   }
 
@@ -113,6 +111,30 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = await createClient()
+  const sb = supabase as any
+
+  // ── Credits check ─────────────────────────────────────────────────────────
+  const { data: credits } = await sb
+    .from("client_settings")
+    .select("ai_credits_used, ai_credits_limit")
+    .single()
+
+  const used  = credits?.ai_credits_used  ?? 0
+  const limit = credits?.ai_credits_limit ?? 100_000
+
+  if (used >= limit) {
+    return Response.json(
+      {
+        error:   "credits_exceeded",
+        message: "Llegaste al límite de créditos de IA para este período. Contactá a tu admin para aumentarlo.",
+        used,
+        limit,
+      },
+      { status: 429 }
+    )
+  }
+
+  // ── Build context + prompt ────────────────────────────────────────────────
   const { bizName, ctx } = await getDashboardContext(supabase)
 
   const today = new Date().toLocaleDateString("es-AR", {
@@ -134,18 +156,30 @@ INSTRUCCIONES:
 - Actuá como un consultor senior que conoce la empresa a fondo.
 - Fecha de hoy: ${today}`
 
+  // ── Stream response ───────────────────────────────────────────────────────
   const stream = anthropic.messages.stream({
-    model: "claude-opus-4-5",
+    model:      "claude-opus-4-5",
     max_tokens: 1024,
-    system: systemPrompt,
-    messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+    system:     systemPrompt,
+    messages:   messages.map((m: any) => ({ role: m.role, content: m.content })),
   })
 
   const encoder = new TextEncoder()
+  let inputTokens  = 0
+  let outputTokens = 0
+
   const readable = new ReadableStream({
     async start(controller) {
       try {
         for await (const chunk of stream) {
+          // Capture token usage from stream events
+          if (chunk.type === "message_start") {
+            inputTokens = chunk.message.usage?.input_tokens ?? 0
+          }
+          if (chunk.type === "message_delta" && (chunk as any).usage) {
+            outputTokens = (chunk as any).usage.output_tokens ?? 0
+          }
+          // Stream text to client
           if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
             controller.enqueue(encoder.encode(chunk.delta.text))
           }
@@ -154,15 +188,42 @@ INSTRUCCIONES:
         controller.error(err)
       } finally {
         controller.close()
+
+        // ── Fire-and-forget: increment credits ──────────────────────────
+        const tokensUsed = inputTokens + outputTokens
+        if (tokensUsed > 0) {
+          updateCredits(tokensUsed).catch(err =>
+            console.error("[ai/chat] Failed to update credits:", err)
+          )
+        }
       }
     },
   })
 
   return new Response(readable, {
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Type":    "text/plain; charset=utf-8",
       "Transfer-Encoding": "chunked",
-      "Cache-Control": "no-cache",
+      "Cache-Control":   "no-cache",
     },
   })
+}
+
+// ── Credit update (service role to bypass RLS) ────────────────────────────────
+
+async function updateCredits(tokensUsed: number) {
+  try {
+    const sb = await createServiceClient() as any
+    const { data } = await sb
+      .from("client_settings")
+      .select("ai_credits_used")
+      .single()
+
+    const current = data?.ai_credits_used ?? 0
+    await sb
+      .from("client_settings")
+      .update({ ai_credits_used: current + tokensUsed })
+  } catch (err) {
+    console.error("[ai/chat] Credit update error:", err)
+  }
 }

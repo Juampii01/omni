@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import { Send, Sparkles, Loader2, RotateCcw, Copy } from "lucide-react"
+import { Send, Sparkles, Loader2, RotateCcw, Copy, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AiMessage } from "@/components/ai-message"
+import { useAiCredits } from "@/hooks/use-ai-credits"
 
 type Message = { role: "user" | "assistant"; content: string }
 
@@ -59,6 +60,7 @@ export default function AiPage() {
   const [streaming, setStreaming] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { used, limit, percentage, isLimitReached, isWarning, refresh: refreshCredits } = useAiCredits()
 
   useEffect(() => { document.title = "IA Asistente — Omni" }, [])
 
@@ -94,9 +96,13 @@ export default function AiPage() {
         body: JSON.stringify({ messages: nextMessages }),
       })
 
-      if (!res.ok) {
-        throw new Error("Error del servidor")
+      if (res.status === 429) {
+        const body = await res.json().catch(() => ({}))
+        toast.error(body.message ?? "Límite de créditos de IA alcanzado")
+        setMessages(prev => prev.slice(0, -1))
+        return
       }
+      if (!res.ok) throw new Error("Error del servidor")
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
@@ -113,6 +119,9 @@ export default function AiPage() {
           return updated
         })
       }
+
+      // Refresh credits counter after a successful response
+      refreshCredits()
     } catch (err) {
       toast.error("No se pudo conectar con el asistente")
       setMessages(prev => prev.slice(0, -1))
@@ -193,26 +202,46 @@ export default function AiPage() {
         )}
       </div>
 
+      {/* Credits banner */}
+      {isLimitReached ? (
+        <div className="mt-3 flex items-center gap-2 p-3 rounded-xl border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Límite de créditos de IA alcanzado. Contactá al admin para aumentarlo.</span>
+        </div>
+      ) : isWarning ? (
+        <div className="mt-3 flex items-center gap-2 p-3 rounded-xl border border-warning/30 bg-warning/5 text-warning text-sm">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>{used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} créditos usados ({percentage}%)</span>
+        </div>
+      ) : null}
+
       {/* Input */}
-      <div className="mt-4 flex gap-2 items-end border border-border rounded-2xl p-2 bg-background focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/20 transition-all">
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Escribí tu pregunta… (Enter para enviar, Shift+Enter para nueva línea)"
-          className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 min-h-[40px] max-h-40 text-sm p-1"
-          rows={1}
-          disabled={streaming}
-        />
-        <Button
-          onClick={() => send()}
-          disabled={!input.trim() || streaming}
-          size="icon"
-          className="h-8 w-8 shrink-0 bg-brand hover:bg-brand-hover rounded-xl"
-        >
-          {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </Button>
+      <div className="mt-3 space-y-1.5">
+        <div className="flex gap-2 items-end border border-border rounded-2xl p-2 bg-background focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/20 transition-all">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isLimitReached ? "Créditos agotados" : "Escribí tu pregunta… (Enter para enviar, Shift+Enter para nueva línea)"}
+            className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 min-h-[40px] max-h-40 text-sm p-1"
+            rows={1}
+            disabled={streaming || isLimitReached}
+          />
+          <Button
+            onClick={() => send()}
+            disabled={!input.trim() || streaming || isLimitReached}
+            size="icon"
+            className="h-8 w-8 shrink-0 bg-brand hover:bg-brand-hover rounded-xl"
+          >
+            {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+        {!isWarning && !isLimitReached && (
+          <p className="text-[10px] text-muted-foreground/50 text-right">
+            {used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} créditos usados
+          </p>
+        )}
       </div>
     </div>
   )

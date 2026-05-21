@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import { Sparkles, X, Send, Loader2, RotateCcw, Copy, Minus, ArrowUpRight } from "lucide-react"
+import { Sparkles, X, Send, Loader2, RotateCcw, Copy, Minus, ArrowUpRight, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AiMessage } from "@/components/ai-message"
 import Link from "next/link"
+import { useAiCredits } from "@/hooks/use-ai-credits"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ export function AiChatWidget() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const { used, limit, percentage, isLimitReached, isWarning, refresh: refreshCredits } = useAiCredits()
 
   // Auto-scroll
   useEffect(() => {
@@ -75,6 +77,13 @@ export function AiChatWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next }),
       })
+
+      if (res.status === 429) {
+        const body = await res.json().catch(() => ({}))
+        toast.error(body.message ?? "Límite de créditos de IA alcanzado")
+        setMessages(prev => prev.slice(0, -1))
+        return
+      }
       if (!res.ok) throw new Error()
 
       const reader = res.body!.getReader()
@@ -91,6 +100,9 @@ export function AiChatWidget() {
           return u
         })
       }
+
+      // Refresh credits counter after a successful response
+      refreshCredits()
     } catch {
       toast.error("No se pudo conectar con el asistente")
       setMessages(prev => prev.slice(0, -1))
@@ -244,21 +256,34 @@ export function AiChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="px-3 pb-3 shrink-0">
+            <div className="px-3 pb-3 shrink-0 space-y-1.5">
+              {/* Credits warning */}
+              {isLimitReached ? (
+                <div className="flex items-center gap-1.5 px-1 text-[10px] text-destructive font-medium">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  Límite de créditos alcanzado. Contactá al admin.
+                </div>
+              ) : isWarning ? (
+                <div className="flex items-center gap-1.5 px-1 text-[10px] text-warning font-medium">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  {used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} créditos usados ({percentage}%)
+                </div>
+              ) : null}
+
               <div className="flex gap-2 items-end border border-border rounded-xl p-2 bg-muted/30 focus-within:border-brand/50 focus-within:bg-background transition-all">
                 <Textarea
                   ref={textareaRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKey}
-                  placeholder="Preguntame algo… (Enter para enviar)"
+                  placeholder={isLimitReached ? "Créditos agotados" : "Preguntame algo… (Enter para enviar)"}
                   className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 min-h-[36px] max-h-28 text-sm p-0 bg-transparent"
                   rows={1}
-                  disabled={streaming}
+                  disabled={streaming || isLimitReached}
                 />
                 <Button
                   onClick={() => send()}
-                  disabled={!input.trim() || streaming}
+                  disabled={!input.trim() || streaming || isLimitReached}
                   size="icon"
                   className="h-7 w-7 shrink-0 bg-brand hover:bg-brand-hover rounded-lg"
                 >
@@ -268,6 +293,13 @@ export function AiChatWidget() {
                   }
                 </Button>
               </div>
+
+              {/* Subtle credits counter (only when no warning) */}
+              {!isWarning && !isLimitReached && (
+                <p className="text-[9px] text-muted-foreground/50 text-right px-1">
+                  {used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} créditos
+                </p>
+              )}
             </div>
           </>
         )}
