@@ -49,6 +49,46 @@
   --radius: 0.5rem;
 }
 
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+.dark {
+  /* Brand (slightly lighter on dark bg) */
+  --brand:              163 47% 45%;
+  --brand-foreground:   0 0% 100%;
+  --brand-soft:         163 33% 14%;
+  --brand-hover:        163 47% 52%;
+
+  /* Base */
+  --background:         220 13% 9%;
+  --foreground:         220 9% 96%;
+  --card:               220 13% 12%;
+  --card-foreground:    220 9% 96%;
+  --popover:            220 13% 13%;
+  --popover-foreground: 220 9% 96%;
+
+  /* Grays */
+  --muted:              220 13% 16%;
+  --muted-foreground:   220 9% 58%;
+  --secondary:          220 13% 16%;
+  --secondary-foreground: 220 9% 92%;
+
+  /* Borders & inputs */
+  --border:             220 13% 20%;
+  --input:              220 13% 20%;
+  --ring:               163 47% 45%;
+
+  /* Primary (= brand) */
+  --primary:            163 47% 45%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Accent */
+  --accent:             220 13% 16%;
+  --accent-foreground:  220 9% 92%;
+
+  /* Alerts — same as light */
+  --destructive:        0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+}
+
 /* ── Tailwind v4 theme mapping ──────────────────────────────────────────── */
 @theme inline {
   --color-brand:                hsl(var(--brand));

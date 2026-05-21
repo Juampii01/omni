@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { createClient } from "@/lib/supabase/client"
 import { useUser } from "@/hooks/use-user"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,12 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getInitials } from "@/lib/utils"
-import { LogOut, User, Settings } from "lucide-react"
+import { LogOut, User, Settings, Moon, Sun } from "lucide-react"
 import { ROLE_LABELS } from "@/lib/constants"
 import type { UserRole } from "@/lib/constants"
 
 export function UserMenu() {
   const router = useRouter()
+  const { resolvedTheme, setTheme } = useTheme()
   const { user, isLoading } = useUser()
 
   async function handleSignOut() {
@@ -64,6 +66,14 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => router.push("/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           Configuración
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+          {resolvedTheme === "dark" ? (
+            <Sun className="mr-2 h-4 w-4" />
+          ) : (
+            <Moon className="mr-2 h-4 w-4" />
+          )}
+          {resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
