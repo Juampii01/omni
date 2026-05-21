@@ -6,6 +6,7 @@ import { Topbar } from "./topbar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/sonner"
 import { LiveNotifications } from "@/components/live-notifications"
+import { AiChatWidget } from "@/components/ai-chat-widget"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -42,8 +43,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
       </div>
 
-      <Toaster richColors position="bottom-right" />
+      <Toaster richColors position="top-right" />
       <LiveNotifications />
+      <AiChatWidget />
     </div>
   )
 }

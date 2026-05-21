@@ -8,31 +8,38 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { Send, Sparkles, Loader2, RotateCcw, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AiMessage } from "@/components/ai-message"
 
 type Message = { role: "user" | "assistant"; content: string }
 
 const SUGGESTIONS = [
-  "¿Cómo puedo mejorar la tasa de conversión de leads?",
-  "Escribime un email de seguimiento para un prospecto que no respondió",
-  "¿Qué métricas debo medir en un negocio de servicios?",
-  "Dame 5 ideas de contenido para Instagram sobre productividad",
+  "¿Cómo está mi pipeline hoy? Analizalo y decime qué hacer",
+  "Resumime los KPIs del mes y decime en qué estoy fallando",
+  "¿Qué tareas urgentes tengo pendientes?",
+  "Dame 3 acciones concretas para mejorar mi tasa de conversión",
+  "Escribime un email de seguimiento para un lead que no respondió hace 5 días",
+  "¿Cómo bajo el churn rate? Dame un plan de acción",
 ]
 
 function MessageBubble({ msg, onCopy }: { msg: Message; onCopy: (text: string) => void }) {
   const isUser = msg.role === "user"
   return (
     <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
-      <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-        <AvatarFallback className={cn("text-[11px]", isUser ? "bg-brand text-white" : "bg-muted text-muted-foreground")}>
+      <Avatar className="h-8 w-8 shrink-0 mt-0.5">
+        <AvatarFallback className={cn("text-[11px] font-semibold", isUser ? "bg-brand text-white" : "bg-muted text-muted-foreground")}>
           {isUser ? "Vos" : "IA"}
         </AvatarFallback>
       </Avatar>
-      <div className={cn("group relative max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+      <div className={cn(
+        "group relative max-w-[80%] rounded-2xl px-4 py-3",
         isUser
           ? "bg-brand text-white rounded-tr-sm"
           : "bg-muted text-foreground rounded-tl-sm"
       )}>
-        {msg.content}
+        {isUser
+          ? <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+          : <AiMessage content={msg.content} isUser={false} />
+        }
         {!isUser && msg.content && (
           <button
             onClick={() => onCopy(msg.content)}
@@ -146,12 +153,12 @@ export default function AiPage() {
               <p className="text-base font-semibold">¿En qué te ayudo hoy?</p>
               <p className="text-sm text-muted-foreground mt-1">Preguntame cualquier cosa sobre tu negocio</p>
             </div>
-            <div className="grid sm:grid-cols-2 gap-2 w-full max-w-lg">
+            <div className="grid sm:grid-cols-2 gap-2 w-full max-w-2xl">
               {SUGGESTIONS.map(s => (
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="text-left text-xs p-3 rounded-xl border border-border hover:border-brand/40 hover:bg-brand-soft transition-all"
+                  className="text-left text-xs p-3 rounded-xl border border-border hover:border-brand/40 hover:bg-brand-soft transition-all leading-relaxed"
                 >
                   {s}
                 </button>
