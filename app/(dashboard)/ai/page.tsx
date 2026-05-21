@@ -62,6 +62,14 @@ export default function AiPage() {
 
   useEffect(() => { document.title = "IA Asistente — Omni" }, [])
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (!ta) return
+    ta.style.height = "auto"
+    ta.style.height = Math.min(ta.scrollHeight, 160) + "px"
+  }, [input])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])

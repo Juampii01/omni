@@ -8,6 +8,7 @@ import {
   CheckSquare, UserCog, FileText, Binoculars,
   Sparkles, ClipboardList, MessageSquare, Settings,
   ChevronRight, Radio, TrendingUp, Plug, Smartphone,
+  CalendarDays,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -27,6 +28,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   "trending-up":      TrendingUp,
   "plug":             Plug,
   "smartphone":       Smartphone,
+  "calendar-days":    CalendarDays,
 }
 
 const NAV = [
@@ -40,8 +42,9 @@ const NAV = [
   {
     section: "Ventas",
     items: [
-      { label: "Leads",     href: "/crm",          icon: "users" },
-      { label: "Pipeline",  href: "/crm/pipeline", icon: "git-branch" },
+      { label: "Leads",       href: "/crm",          icon: "users" },
+      { label: "Pipeline",    href: "/crm/pipeline", icon: "git-branch" },
+      { label: "Calendario",  href: "/calendar",     icon: "calendar-days" },
     ],
   },
   {
