@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner"
 import { Plus, MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -372,6 +373,8 @@ export function ContentClient({
   const [filterPlatform, setFilterPlatform] = useState<string>("all")
   const [filterFormat, setFilterFormat]     = useState<string>("all")
   const [filterStatus, setFilterStatus]     = useState<string>("all")
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     return pieces.filter((p) => {
@@ -392,8 +395,16 @@ export function ContentClient({
     setDialogOpen(true)
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este contenido?")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const sb = createClient() as any
     const { error } = await sb.from("content_pieces").delete().eq("id", id)
     if (error) { toast.error("No se pudo eliminar"); return }
@@ -593,7 +604,7 @@ export function ContentClient({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(piece.id)}
+                          onClick={() => requestDelete(piece.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Eliminar
@@ -614,6 +625,14 @@ export function ContentClient({
         userId={userId}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar contenido?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

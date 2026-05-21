@@ -4,8 +4,9 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { Palette, Plug, CreditCard, User } from "lucide-react"
 
-export const metadata = { title: "Configuración — Omni" }
 import { cn } from "@/lib/utils"
+
+export const metadata = { title: "Configuración" }
 
 const SETTING_GROUPS = [
   {

@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "sonner"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, ExternalLink, Binoculars, Instagram, Music2, Youtube } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -424,6 +425,8 @@ export function CompetitorsClient({
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Competitor | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     if (!search.trim()) return competitors
@@ -463,8 +466,16 @@ export function CompetitorsClient({
     })
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este competidor?")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const sb = createClient() as any
     const { error } = await sb.from("competitors").delete().eq("id", id)
     if (error) {
@@ -551,7 +562,7 @@ export function CompetitorsClient({
               key={c.id}
               competitor={c}
               onEdit={openEdit}
-              onDelete={handleDelete}
+              onDelete={requestDelete}
             />
           ))}
         </div>
@@ -563,6 +574,14 @@ export function CompetitorsClient({
         userId={userId}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar competidor?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

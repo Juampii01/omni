@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Plus, MoreHorizontal, Pencil, Trash2, Pin, PinOff, Megaphone } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Announcement = {
@@ -265,6 +266,8 @@ export function CommsClient({
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Announcement | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function openCreate() { setEditing(null); setDialogOpen(true) }
   function openEdit(a: Announcement) { setEditing(a); setDialogOpen(true) }
@@ -287,8 +290,16 @@ export function CommsClient({
     })
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este anuncio?")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const sb = (createClient() as any)
     const { error } = await sb.from("announcements").delete().eq("id", id)
     if (error) { toast.error("No se pudo eliminar"); return }
@@ -317,7 +328,7 @@ export function CommsClient({
     userId,
     isAdmin,
     onEdit: openEdit,
-    onDelete: handleDelete,
+    onDelete: requestDelete,
     onTogglePin: handleTogglePin,
   }
 
@@ -390,6 +401,14 @@ export function CommsClient({
         userId={userId}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar anuncio?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

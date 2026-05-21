@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/sonner"
 
 interface DashboardLayoutProps {
@@ -23,6 +23,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile sidebar via Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-56">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Menú de navegación</SheetTitle>
+          </SheetHeader>
           <Sidebar onClose={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>

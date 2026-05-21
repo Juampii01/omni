@@ -17,8 +17,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, GitBranch, DollarSign } from "lucide-react"
 import { cn, getInitials, formatCurrency } from "@/lib/utils"
+import { plural } from "@/lib/plural"
 import { LEAD_STAGE_LABELS, LEAD_STAGE_COLORS, type LeadStage } from "@/lib/constants"
 import Link from "next/link"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Lead = {
@@ -230,6 +232,8 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
   const [filterStage, setFilterStage] = useState("all")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Lead | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const filtered = useMemo(() => leads.filter(l => {
     if (filterStage !== "all" && l.stage !== filterStage) return false
@@ -255,8 +259,16 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
     })
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este lead?")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const sb = createClient() as any
     const { error } = await sb.from("leads").update({ deleted_at: new Date().toISOString() }).eq("id", id)
     if (error) { toast.error("No se pudo eliminar"); return }
@@ -270,7 +282,7 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Leads" description={`${leads.length} contactos · ${formatCurrency(totalValue, "USD")} en pipeline`}>
+      <PageHeader title="Leads" description={`${plural(leads.length, "contacto", "contactos")} · ${formatCurrency(totalValue, "USD")} en pipeline`}>
         <div className="flex items-center gap-2">
           <Link href="/crm/pipeline">
             <Button variant="outline" size="sm"><GitBranch className="h-4 w-4 mr-2" />Pipeline</Button>
@@ -384,7 +396,7 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
                           <DropdownMenuItem onClick={() => openEdit(lead)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(lead.id)}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => requestDelete(lead.id)}>
                             <Trash2 className="h-4 w-4 mr-2" />Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -405,6 +417,14 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
         departments={departments}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar lead?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "sonner"
 import { Plus, MoreHorizontal, Pencil, Trash2, TrendingUp, TrendingDown, Minus, Target } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -429,6 +430,8 @@ export function KpisClient({
   const [filterCategory, setFilterCategory] = useState<string>("all")
   const [filterMonth, setFilterMonth] = useState<string>("all")
   const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const categories = useMemo(
     () => Array.from(new Set(kpis.map((k) => k.category))).sort(),
@@ -461,8 +464,16 @@ export function KpisClient({
     setDialogOpen(true)
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este KPI?")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const supabase = createClient()
     const { error } = await supabase.from("kpis").delete().eq("id", id)
     if (error) { toast.error("No se pudo eliminar"); return }
@@ -588,7 +599,7 @@ export function KpisClient({
               kpi={kpi}
               departments={departments}
               onEdit={openEdit}
-              onDelete={handleDelete}
+              onDelete={requestDelete}
             />
           ))}
         </div>
@@ -600,6 +611,14 @@ export function KpisClient({
         departments={departments}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar KPI?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

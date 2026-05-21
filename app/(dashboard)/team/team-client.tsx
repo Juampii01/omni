@@ -299,7 +299,7 @@ export function TeamClient({
             </Avatar>
             <div className="min-w-0">
               <p className="text-sm font-medium truncate">
-                {member.full_name ?? <span className="text-muted-foreground italic">Sin nombre</span>}
+                {(member.full_name && !member.full_name.includes("@")) ? member.full_name : <span className="text-muted-foreground italic">Sin nombre</span>}
               </p>
               <p className="text-xs text-muted-foreground truncate">{member.email}</p>
             </div>

@@ -24,6 +24,7 @@ import {
   Star, AlignLeft, AlignJustify, ListChecks,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type QuestionType = "text" | "textarea" | "choice" | "rating"
@@ -676,6 +677,8 @@ export function DiscoveryClient({ initialForms, currentUserId }: {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<DiscoveryForm | null>(null)
   const [viewingForm, setViewingForm] = useState<DiscoveryForm | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function openCreate() {
     setEditing(null)
@@ -699,8 +702,16 @@ export function DiscoveryClient({ initialForms, currentUserId }: {
     })
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este formulario? Esta acción no se puede deshacer.")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const sb = createClient() as any
     const { error } = await sb.from("discovery_forms").delete().eq("id", id)
     if (error) {
@@ -790,7 +801,7 @@ export function DiscoveryClient({ initialForms, currentUserId }: {
               key={form.id}
               form={form}
               onEdit={openEdit}
-              onDelete={handleDelete}
+              onDelete={requestDelete}
               onToggleActive={handleToggleActive}
               onViewResponses={setViewingForm}
               onCopyLink={handleCopyLink}
@@ -805,6 +816,14 @@ export function DiscoveryClient({ initialForms, currentUserId }: {
         currentUserId={currentUserId}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar formulario?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

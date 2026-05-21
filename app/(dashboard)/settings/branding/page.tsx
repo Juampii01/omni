@@ -39,6 +39,8 @@ export default function BrandingPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  useEffect(() => { document.title = "Branding — Omni" }, [])
+
   useEffect(() => {
     const supabase = createClient()
     supabase

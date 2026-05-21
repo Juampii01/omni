@@ -43,18 +43,18 @@ export function UserMenu() {
             </AvatarFallback>
           </Avatar>
           <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">
-            {user.full_name ?? user.email}
+            {(user.full_name && !user.full_name.includes("@")) ? user.full_name : user.email}
           </span>
         </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="font-normal">
-          <p className="text-sm font-medium truncate">{user.full_name ?? "—"}</p>
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          <p className="text-xs text-brand mt-0.5">
-            {ROLE_LABELS[user.role as UserRole]}
+          <p className="text-sm font-medium truncate">
+            {(user.full_name && !user.full_name.includes("@")) ? user.full_name : "Sin nombre"}
           </p>
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          <p className="text-xs text-brand mt-0.5">{ROLE_LABELS[user.role as UserRole]}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/settings/profile")}>

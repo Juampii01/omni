@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/page-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Construction } from "lucide-react"
 
-export const metadata = { title: "Pipeline — Omni" }
+export const metadata = { title: "Pipeline" }
 
 export default function PipelinePage() {
   return (

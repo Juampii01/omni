@@ -35,6 +35,8 @@ export default function ProfilePage() {
   const [confirmPw, setConfirmPw] = useState("")
   const [savingPw, setSavingPw] = useState(false)
 
+  useEffect(() => { document.title = "Mi perfil — Omni" }, [])
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()

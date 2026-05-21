@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { Plus, MoreHorizontal, Pencil, Trash2, Users, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -179,17 +180,27 @@ export function DepartmentsClient({
   const [depts, setDepts] = useState<Department[]>(initialDepts)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Department | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function openCreate() { setEditing(null); setDialogOpen(true) }
   function openEdit(dept: Department) { setEditing(dept); setDialogOpen(true) }
 
-  async function handleDelete(id: string) {
+  function requestDelete(id: string) {
     const memberCount = profiles.filter((p) => p.department_id === id).length
     if (memberCount > 0) {
       toast.error(`Este departamento tiene ${memberCount} miembro${memberCount !== 1 ? "s" : ""}. Reasignalos antes de eliminar.`)
       return
     }
-    if (!confirm("¿Eliminar este departamento?")) return
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const supabase = createClient()
     const { error } = await supabase.from("departments").delete().eq("id", id)
     if (error) { toast.error("No se pudo eliminar"); return }
@@ -281,7 +292,7 @@ export function DepartmentsClient({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(dept.id)}
+                          onClick={() => requestDelete(dept.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />Eliminar
                         </DropdownMenuItem>
@@ -304,6 +315,14 @@ export function DepartmentsClient({
         editing={editing}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar departamento?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

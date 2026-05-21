@@ -20,6 +20,7 @@ import {
   TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS,
   type TaskStatus, type TaskPriority,
 } from "@/lib/constants"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Task = {
@@ -268,6 +269,8 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Task | null>(null)
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>("todo")
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   function openCreate(status: TaskStatus = "todo") { setEditing(null); setDefaultStatus(status); setDialogOpen(true) }
   function openEdit(t: Task) { setEditing(t); setDialogOpen(true) }
@@ -280,8 +283,16 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
     })
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta tarea?")) return
+  function requestDelete(id: string) {
+    setDeleteTarget(id)
+    setConfirmOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget
+    setConfirmOpen(false)
+    setDeleteTarget(null)
     const sb = createClient() as any
     const { error } = await sb.from("tasks").update({ deleted_at: new Date().toISOString() }).eq("id", id)
     if (error) { toast.error("No se pudo eliminar"); return }
@@ -338,7 +349,7 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
                       task={task}
                       profiles={profiles}
                       onEdit={openEdit}
-                      onDelete={handleDelete}
+                      onDelete={requestDelete}
                       onStatusChange={handleStatusChange}
                     />
                   ))}
@@ -364,6 +375,14 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
         currentUserId={currentUserId}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="¿Eliminar tarea?"
+        description="Esta acción no se puede deshacer."
+        onConfirm={handleDelete}
       />
     </div>
   )

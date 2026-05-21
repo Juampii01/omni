@@ -7,6 +7,8 @@ import { BarChart2, Users, CheckSquare, Sparkles, TrendingUp } from "lucide-reac
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
+export const metadata = { title: "Overview" }
+
 const QUICK_LINKS = [
   {
     label: "KPIs del mes",
@@ -58,10 +60,15 @@ export default async function OverviewPage() {
   const rawName = user.full_name?.includes("@") ? null : user.full_name
   const firstName = rawName?.split(" ")[0] ?? null
 
+  const hour = new Date().getHours()
+  const saludo = hour >= 6 && hour < 12 ? "Buen día"
+    : hour >= 12 && hour < 19 ? "Buenas tardes"
+    : "Buenas noches"
+
   return (
     <div className="space-y-8">
       <PageHeader
-        title={firstName ? `Buen día, ${firstName} 👋` : "Buen día 👋"}
+        title={firstName ? `${saludo}, ${firstName} 👋` : `${saludo} 👋`}
         description={`Resumen operativo de ${businessName}`}
       />
 
