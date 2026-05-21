@@ -25,6 +25,14 @@ export async function getUser(): Promise<AuthUser | null> {
   if (!profile) {
     try {
       const serviceClient = await createServiceClient()
+
+      // Determinar rol: owner sólo si aún no existe ningún owner en la cuenta.
+      const { count: ownerCount } = await (serviceClient as any)
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "owner")
+      const assignedRole = (ownerCount ?? 0) === 0 ? "owner" : "team"
+
       const { data: created } = await (serviceClient as any)
         .from("profiles")
         .insert({
@@ -32,7 +40,7 @@ export async function getUser(): Promise<AuthUser | null> {
           email: user.email ?? "",
           full_name: (user.user_metadata?.full_name as string | undefined) ?? null,
           avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
-          role: "owner" as const, // primer usuario sin perfil = owner
+          role: assignedRole,
         })
         .select()
         .single()

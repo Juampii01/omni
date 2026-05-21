@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { Loader2, ArrowLeft } from "lucide-react"
+import { Loader2, ArrowLeft, Camera, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { BRAND_COLOR_HEX } from "@/lib/constants"
 
@@ -38,6 +38,8 @@ export default function BrandingPage() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
   useEffect(() => { document.title = "Branding — Omni" }, [])
 
@@ -53,19 +55,59 @@ export default function BrandingPage() {
       })
   }, [])
 
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("La imagen debe pesar menos de 2 MB")
+      return
+    }
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
+  }
+
+  function removeLogo() {
+    setLogoFile(null)
+    setLogoPreview(null)
+    setSettings(s => ({ ...s, business_logo_url: null }))
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
 
     const supabase = createClient()
+    let newLogoUrl = settings.business_logo_url
+
+    // Upload logo if changed
+    if (logoFile) {
+      const ext = logoFile.name.split(".").pop()
+      const path = `logo.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from("logos")
+        .upload(path, logoFile, { upsert: true })
+
+      if (uploadError) {
+        toast.error("Error al subir el logo")
+        setSaving(false)
+        return
+      }
+      const { data: { publicUrl } } = supabase.storage.from("logos").getPublicUrl(path)
+      newLogoUrl = publicUrl
+      setLogoFile(null)
+      setLogoPreview(null)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await supabase
       .from("client_settings")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .upsert({ ...settings } as any)
+      .upsert({ ...settings, business_logo_url: newLogoUrl } as any)
 
     if (error) {
       toast.error("No se pudo guardar la configuración")
     } else {
+      setSettings(s => ({ ...s, business_logo_url: newLogoUrl }))
       toast.success("Configuración guardada")
       // Apply theme live
       document.documentElement.style.setProperty(
@@ -112,6 +154,80 @@ export default function BrandingPage() {
               placeholder="Mi Empresa S.A."
               maxLength={80}
             />
+          </CardContent>
+        </Card>
+
+        {/* Logo */}
+        <Card className="border-border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Logo</CardTitle>
+            <CardDescription className="text-xs">
+              Aparece en el header y en documentos exportados. Recomendado: fondo transparente, formato cuadrado.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              {/* Preview + upload trigger */}
+              <div className="relative group w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 flex-shrink-0">
+                {(logoPreview ?? settings.business_logo_url) ? (
+                  <>
+                    <img
+                      src={logoPreview ?? settings.business_logo_url ?? ""}
+                      alt="Logo"
+                      className="w-full h-full object-contain p-1"
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <Camera className="h-4 w-4 text-white" />
+                    </label>
+                  </>
+                ) : (
+                  <label
+                    htmlFor="logo-upload"
+                    className="flex flex-col items-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground transition-colors p-2"
+                  >
+                    <Upload className="h-5 w-5" />
+                    <span className="text-[10px] text-center leading-tight">Subir logo</span>
+                  </label>
+                )}
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                  className="hidden"
+                  onChange={handleLogoChange}
+                />
+              </div>
+
+              {/* Meta */}
+              <div>
+                {(logoPreview ?? settings.business_logo_url) ? (
+                  <>
+                    <p className="text-sm font-medium">Logo cargado</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Guardá los cambios para aplicarlo.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={removeLogo}
+                      className="mt-1.5 flex items-center gap-1 text-xs text-destructive hover:underline"
+                    >
+                      <X className="h-3 w-3" />
+                      Eliminar logo
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">Sin logo</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      JPG, PNG, WebP o SVG · Máx. 2 MB
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

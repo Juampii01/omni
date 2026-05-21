@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/get-user"
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole("manager")
+    await requireRole("owner", "admin", "manager")
   } catch {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 })
   }
