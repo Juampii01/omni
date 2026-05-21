@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, ExternalLink, Binoculars, Instagram, Music2, Youtube } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { PaginationControls } from "@/components/pagination-controls"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -414,12 +415,18 @@ function CompetitorDialog({
 
 // ── Main client component ─────────────────────────────────────────────────────
 
+interface Pagination {
+  page: number; totalCount: number; totalPages: number; pageSize: number
+}
+
 export function CompetitorsClient({
   initialCompetitors,
   userId,
+  pagination,
 }: {
   initialCompetitors: Competitor[]
   userId: string
+  pagination: Pagination
 }) {
   const [competitors, setCompetitors] = useState<Competitor[]>(initialCompetitors)
   const [search, setSearch] = useState("")
@@ -563,6 +570,14 @@ export function CompetitorsClient({
           ))}
         </div>
       )}
+
+      <PaginationControls
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+        pageSize={pagination.pageSize}
+        buildHref={p => `/competitors?page=${p}`}
+      />
 
       <CompetitorDialog
         open={dialogOpen}

@@ -331,6 +331,21 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
     handleStatusChange(draggingId, targetStatus)
   }
 
+  const INITIAL_VISIBLE = 30
+  const LOAD_MORE_STEP  = 20
+
+  const [visibleCounts, setVisibleCounts] = useState<Map<TaskStatus, number>>(
+    () => new Map(KANBAN_COLS.map(c => [c.status, INITIAL_VISIBLE]))
+  )
+
+  function loadMore(status: TaskStatus) {
+    setVisibleCounts(prev => {
+      const next = new Map(prev)
+      next.set(status, (prev.get(status) ?? INITIAL_VISIBLE) + LOAD_MORE_STEP)
+      return next
+    })
+  }
+
   const byStatus = (status: TaskStatus) => tasks.filter(t => t.status === status)
   const totalActive = tasks.filter(t => !["done", "cancelled"].includes(t.status)).length
 
@@ -358,8 +373,11 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
           {KANBAN_COLS.map(col => {
-            const colTasks = byStatus(col.status)
-            const isOver = dragOverCol === col.status && draggingId !== null
+            const colTasks   = byStatus(col.status)
+            const visible    = visibleCounts.get(col.status) ?? INITIAL_VISIBLE
+            const shown      = colTasks.slice(0, visible)
+            const remaining  = colTasks.length - shown.length
+            const isOver     = dragOverCol === col.status && draggingId !== null
             return (
               <div
                 key={col.status}
@@ -373,7 +391,7 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
                   <span className="text-xs font-bold tabular-nums">{colTasks.length}</span>
                 </div>
                 <div className="space-y-2">
-                  {colTasks.map(task => (
+                  {shown.map(task => (
                     <TaskCard
                       key={task.id}
                       task={task}
@@ -388,6 +406,14 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
                   ))}
                   {isOver && draggingId && (
                     <div className="h-16 rounded-lg border-2 border-dashed border-brand/40 bg-brand/5 transition-all" />
+                  )}
+                  {remaining > 0 && (
+                    <button
+                      onClick={() => loadMore(col.status)}
+                      className="w-full text-[11px] text-muted-foreground hover:text-brand border border-dashed border-border rounded-lg py-1.5 hover:border-brand/40 transition-colors"
+                    >
+                      Ver más ({remaining} restante{remaining !== 1 ? "s" : ""})
+                    </button>
                   )}
                   <button
                     onClick={() => openCreate(col.status)}

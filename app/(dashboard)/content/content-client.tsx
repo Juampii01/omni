@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { Plus, MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { PaginationControls } from "@/components/pagination-controls"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -360,12 +361,18 @@ function ContentDialog({
 
 // ── Main client component ─────────────────────────────────────────────────────
 
+interface Pagination {
+  page: number; totalCount: number; totalPages: number; pageSize: number
+}
+
 export function ContentClient({
   initialContent,
   userId,
+  pagination,
 }: {
   initialContent: ContentPiece[]
   userId: string
+  pagination: Pagination
 }) {
   const [pieces, setPieces] = useState<ContentPiece[]>(initialContent)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -618,6 +625,14 @@ export function ContentClient({
           </Table>
         </Card>
       )}
+
+      <PaginationControls
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+        pageSize={pagination.pageSize}
+        buildHref={p => `/content?page=${p}`}
+      />
 
       <ContentDialog
         open={dialogOpen}

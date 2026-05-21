@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, GitBranch, DollarSign } from "lucide-react"
+import { PaginationControls } from "@/components/pagination-controls"
 import { cn, getInitials, formatCurrency } from "@/lib/utils"
 import { plural } from "@/lib/plural"
 import { LEAD_STAGE_LABELS, LEAD_STAGE_COLORS, type LeadStage } from "@/lib/constants"
@@ -223,30 +224,38 @@ function StageSummary({ leads }: { leads: Lead[] }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export function LeadsClient({ initialLeads, profiles, departments }: {
-  initialLeads: Lead[]
-  profiles: Profile[]
-  departments: Department[]
+interface Pagination {
+  page:       number
+  totalCount: number
+  totalPages: number
+  pageSize:   number
+  stage:      string
+}
+
+export function LeadsClient({ initialLeads, profiles, departments, pagination }: {
+  initialLeads:  Lead[]
+  profiles:      Profile[]
+  departments:   Department[]
+  pagination:    Pagination
 }) {
   const router = useRouter()
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [search, setSearch] = useState("")
-  const [filterStage, setFilterStage] = useState("all")
+  // Stage filter is server-side via URL — read from pagination prop
+  const filterStage = pagination.stage
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Lead | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
+  // Stage is filtered server-side; only apply local search within the current page
   const filtered = useMemo(() => leads.filter(l => {
-    if (filterStage !== "all" && l.stage !== filterStage) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return l.full_name.toLowerCase().includes(q)
-        || l.email?.toLowerCase().includes(q)
-        || l.source?.toLowerCase().includes(q)
-    }
-    return true
-  }), [leads, search, filterStage])
+    if (!search) return true
+    const q = search.toLowerCase()
+    return l.full_name.toLowerCase().includes(q)
+      || l.email?.toLowerCase().includes(q)
+      || l.source?.toLowerCase().includes(q)
+  }), [leads, search])
 
   const totalValue = filtered.reduce((s, l) => s + (l.amount ?? 0), 0)
 
@@ -310,7 +319,10 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar leads…" className="pl-9 h-8 text-sm" />
         </div>
-        <Select value={filterStage} onValueChange={setFilterStage}>
+        <Select
+          value={filterStage}
+          onValueChange={v => router.push(`/crm?page=1${v !== "all" ? `&stage=${v}` : ""}`)}
+        >
           <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Etapa" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las etapas</SelectItem>
@@ -416,6 +428,15 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
           </div>
         </Card>
       )}
+
+      {/* Pagination */}
+      <PaginationControls
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        totalCount={pagination.totalCount}
+        pageSize={pagination.pageSize}
+        buildHref={p => `/crm?page=${p}${filterStage !== "all" ? `&stage=${filterStage}` : ""}`}
+      />
 
       <LeadDialog
         open={dialogOpen}
