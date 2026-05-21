@@ -83,88 +83,88 @@ BEGIN
   IF (SELECT COUNT(*) FROM leads) < 10 THEN
 
     -- NEW (8)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,created_by,notes,created_at) VALUES
-      ('Valentina Castro','valentina.castro@gmail.com','+5491155500001','Instagram','new',1800,owner_id,'DM Instagram. Preguntó por el programa premium.',now()-'1 day'::interval),
-      ('Martín López','martin.lopez@gmail.com','+5491155500002','Instagram','new',1800,owner_id,'Comentó en el reel de escalamiento.',now()-'2 days'::interval),
-      ('Florencia Ramírez','flor.ramirez@gmail.com','+5491155500003','ManyChat','new',1800,owner_id,'Entró por ManyChat, respondió el cuestionario de calificación.',now()-'3 days'::interval),
-      ('Tomás Fernández','tomas.f@gmail.com','+5491155500004','Referido','new',3600,owner_id,'Referido directo por alumno activo. Alto potencial.',now()-'2 days'::interval),
-      ('Luciana Moreno','luciana.m@hotmail.com','+5491155500005','Instagram','new',1800,owner_id,null,now()-'1 day'::interval),
-      ('Emiliano Torres','emiliano.t@gmail.com','+5491155500006','Facebook Ads','new',1800,owner_id,null,now()-'4 days'::interval),
-      ('Camila Herrera','c.herrera@gmail.com','+5491155500007','Instagram','new',1800,owner_id,'Emprendedora rubro textil, $3k MRR actual.',now()-'1 day'::interval),
-      ('Nicolás Gutiérrez','nicolas.g@gmail.com','+5491155500008','ManyChat','new',1800,owner_id,null,now()-'5 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,notes,created_at) VALUES
+      ('Valentina Castro','valentina.castro@gmail.com','+5491155500001','Instagram','new',1800,'DM Instagram. Preguntó por el programa premium.',now()-'1 day'::interval),
+      ('Martín López','martin.lopez@gmail.com','+5491155500002','Instagram','new',1800,'Comentó en el reel de escalamiento.',now()-'2 days'::interval),
+      ('Florencia Ramírez','flor.ramirez@gmail.com','+5491155500003','ManyChat','new',1800,'Entró por ManyChat, respondió el cuestionario de calificación.',now()-'3 days'::interval),
+      ('Tomás Fernández','tomas.f@gmail.com','+5491155500004','Referido','new',3600,'Referido directo por alumno activo. Alto potencial.',now()-'2 days'::interval),
+      ('Luciana Moreno','luciana.m@hotmail.com','+5491155500005','Instagram','new',1800,null,now()-'1 day'::interval),
+      ('Emiliano Torres','emiliano.t@gmail.com','+5491155500006','Facebook Ads','new',1800,null,now()-'4 days'::interval),
+      ('Camila Herrera','c.herrera@gmail.com','+5491155500007','Instagram','new',1800,'Emprendedora rubro textil, $3k MRR actual.',now()-'1 day'::interval),
+      ('Nicolás Gutiérrez','nicolas.g@gmail.com','+5491155500008','ManyChat','new',1800,null,now()-'5 days'::interval);
 
     -- QUALIFIED (12)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,last_contact_at,created_at) VALUES
-      ('Roberto Sánchez','roberto.s@gmail.com','+5491155500009','Instagram','qualified',1800,owner_id,owner_id,'Consultoría propia, quiere escalar a $15k/mes. Llamada hoy a las 17:30.',now()-'1 hour'::interval,now()-'5 days'::interval),
-      ('Daniela Medina','daniela.m@gmail.com','+5491155500010','Instagram','qualified',1800,owner_id,owner_id,'Infoproductora con buen ticket promedio.',now()-'2 days'::interval,now()-'8 days'::interval),
-      ('Andrés Villanueva','andres.v@gmail.com','+5491155500011','ManyChat','qualified',1800,owner_id,owner_id,null,now()-'3 days'::interval,now()-'10 days'::interval),
-      ('Patricia Salinas','patricia.s@gmail.com','+5491155500012','Referido','qualified',3600,owner_id,owner_id,'Referida por Lucía Vargas. Muy interesada.',now()-'1 day'::interval,now()-'7 days'::interval),
-      ('Javier Ortega','javier.o@gmail.com','+5491155500013','Instagram','qualified',1800,owner_id,owner_id,null,now()-'4 days'::interval,now()-'12 days'::interval),
-      ('Sofía Mendoza','sofia.me@gmail.com','+5491155500014','Facebook Ads','qualified',1800,owner_id,owner_id,'Agencia de marketing digital, 3 empleados.',now()-'2 days'::interval,now()-'9 days'::interval),
-      ('Diego Molina','diego.mol@gmail.com','+5491155500015','Instagram','qualified',1800,owner_id,owner_id,null,now()-'5 days'::interval,now()-'15 days'::interval),
-      ('Elena Rojas','elena.r@gmail.com','+5491155500016','ManyChat','qualified',1800,owner_id,owner_id,'Coach de vida, quiere agregar componente de negocios.',now()-'3 days'::interval,now()-'11 days'::interval),
-      ('Gustavo Pérez','gustavo.p@gmail.com','+5491155500017','Referido','qualified',5400,owner_id,owner_id,'Empresa de $30k MRR buscando escalar el equipo de ventas.',now()-'1 day'::interval,now()-'6 days'::interval),
-      ('Renata Blanco','renata.b@gmail.com','+5491155500018','Instagram','qualified',1800,owner_id,owner_id,null,now()-'6 days'::interval,now()-'14 days'::interval),
-      ('Carlos Iglesias','carlos.i@gmail.com','+5491155500019','ManyChat','qualified',1800,owner_id,owner_id,null,now()-'4 days'::interval,now()-'13 days'::interval),
-      ('Valeria Espinoza','valeria.e@gmail.com','+5491155500020','Instagram','qualified',1800,owner_id,owner_id,'Muy motivada, lista para agendar.',now()-'2 days'::interval,now()-'8 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,created_at) VALUES
+      ('Roberto Sánchez','roberto.s@gmail.com','+5491155500009','Instagram','qualified',1800,owner_id,'Consultoría propia, quiere escalar a $15k/mes. Llamada hoy a las 17:30.',now()-'5 days'::interval),
+      ('Daniela Medina','daniela.m@gmail.com','+5491155500010','Instagram','qualified',1800,owner_id,'Infoproductora con buen ticket promedio.',now()-'8 days'::interval),
+      ('Andrés Villanueva','andres.v@gmail.com','+5491155500011','ManyChat','qualified',1800,owner_id,null,now()-'10 days'::interval),
+      ('Patricia Salinas','patricia.s@gmail.com','+5491155500012','Referido','qualified',3600,owner_id,'Referida por Lucía Vargas. Muy interesada.',now()-'7 days'::interval),
+      ('Javier Ortega','javier.o@gmail.com','+5491155500013','Instagram','qualified',1800,owner_id,null,now()-'12 days'::interval),
+      ('Sofía Mendoza','sofia.me@gmail.com','+5491155500014','Facebook Ads','qualified',1800,owner_id,'Agencia de marketing digital, 3 empleados.',now()-'9 days'::interval),
+      ('Diego Molina','diego.mol@gmail.com','+5491155500015','Instagram','qualified',1800,owner_id,null,now()-'15 days'::interval),
+      ('Elena Rojas','elena.r@gmail.com','+5491155500016','ManyChat','qualified',1800,owner_id,'Coach de vida, quiere agregar componente de negocios.',now()-'11 days'::interval),
+      ('Gustavo Pérez','gustavo.p@gmail.com','+5491155500017','Referido','qualified',5400,owner_id,'Empresa de $30k MRR buscando escalar el equipo de ventas.',now()-'6 days'::interval),
+      ('Renata Blanco','renata.b@gmail.com','+5491155500018','Instagram','qualified',1800,owner_id,null,now()-'14 days'::interval),
+      ('Carlos Iglesias','carlos.i@gmail.com','+5491155500019','ManyChat','qualified',1800,owner_id,null,now()-'13 days'::interval),
+      ('Valeria Espinoza','valeria.e@gmail.com','+5491155500020','Instagram','qualified',1800,owner_id,'Muy motivada, lista para agendar.',now()-'8 days'::interval);
 
     -- MEETING_SCHEDULED (15)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,last_contact_at,expected_close_date,created_at) VALUES
-      ('Mateo Domínguez','mateo.d@gmail.com','+5491155500021','Instagram','meeting_scheduled',3600,owner_id,owner_id,'⚠️ SIN CONTACTO hace 14 días. Agencia de publicidad digital.',now()-'14 days'::interval,(now()+'3 days'::interval)::date,now()-'20 days'::interval),
-      ('Laura Castillo','laura.c@gmail.com','+5491155500022','Instagram','meeting_scheduled',1800,owner_id,owner_id,null,now()-'2 days'::interval,(now()+'5 days'::interval)::date,now()-'15 days'::interval),
-      ('Pablo Reyes','pablo.r@gmail.com','+5491155500023','Referido','meeting_scheduled',1800,owner_id,owner_id,null,now()-'1 day'::interval,(now()+'2 days'::interval)::date,now()-'12 days'::interval),
-      ('Adriana Flores','adriana.f@gmail.com','+5491155500024','ManyChat','meeting_scheduled',1800,owner_id,owner_id,'E-commerce, MRR $8k. Bien calificada.',now()-'3 days'::interval,(now()+'7 days'::interval)::date,now()-'18 days'::interval),
-      ('Rodrigo Vega','rodrigo.v@gmail.com','+5491155500025','Facebook Ads','meeting_scheduled',1800,owner_id,owner_id,null,now()-'4 days'::interval,(now()+'4 days'::interval)::date,now()-'16 days'::interval),
-      ('Marcela Torres','marcela.t@gmail.com','+5491155500026','Instagram','meeting_scheduled',1800,owner_id,owner_id,null,now()-'5 days'::interval,(now()+'6 days'::interval)::date,now()-'19 days'::interval),
-      ('Sebastián Álvarez','sebastian.a@gmail.com','+5491155500027','Instagram','meeting_scheduled',1800,owner_id,owner_id,null,now()-'3 days'::interval,(now()+'3 days'::interval)::date,now()-'14 days'::interval),
-      ('Natalia Ríos','natalia.r@gmail.com','+5491155500028','ManyChat','meeting_scheduled',1800,owner_id,owner_id,'Muy interesada en el programa de 6 meses.',now()-'2 days'::interval,(now()+'5 days'::interval)::date,now()-'13 days'::interval),
-      ('Fernando Gómez','fernando.g@gmail.com','+5491155500029','Referido','meeting_scheduled',5400,owner_id,owner_id,'Alto potencial. Referido por alumno activo.',now()-'1 day'::interval,(now()+'2 days'::interval)::date,now()-'10 days'::interval),
-      ('Isabella García','isabella.g@gmail.com','+5491155500030','Instagram','meeting_scheduled',1800,owner_id,owner_id,null,now()-'6 days'::interval,(now()+'8 days'::interval)::date,now()-'21 days'::interval),
-      ('Agustín Romero','agustin.r@gmail.com','+5491155500031','ManyChat','meeting_scheduled',1800,owner_id,owner_id,null,now()-'4 days'::interval,(now()+'6 days'::interval)::date,now()-'17 days'::interval),
-      ('Verónica Muñoz','veronica.m@gmail.com','+5491155500032','Facebook Ads','meeting_scheduled',1800,owner_id,owner_id,null,now()-'7 days'::interval,(now()+'9 days'::interval)::date,now()-'22 days'::interval),
-      ('Joaquín Suárez','joaquin.s@gmail.com','+5491155500033','Instagram','meeting_scheduled',3600,owner_id,owner_id,'Marca personal fuerte, 15k seguidores.',now()-'3 days'::interval,(now()+'4 days'::interval)::date,now()-'15 days'::interval),
-      ('Clara Heredia','clara.h@gmail.com','+5491155500034','Referido','meeting_scheduled',1800,owner_id,owner_id,null,now()-'5 days'::interval,(now()+'7 days'::interval)::date,now()-'20 days'::interval),
-      ('Máximo Peralta','maximo.p@gmail.com','+5491155500035','Instagram','meeting_scheduled',1800,owner_id,owner_id,null,now()-'8 days'::interval,(now()+'10 days'::interval)::date,now()-'25 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,expected_close_date,created_at) VALUES
+      ('Mateo Domínguez','mateo.d@gmail.com','+5491155500021','Instagram','meeting_scheduled',3600,owner_id,'⚠️ SIN CONTACTO hace 14 días. Agencia de publicidad digital.',(now()+'3 days'::interval)::date,now()-'20 days'::interval),
+      ('Laura Castillo','laura.c@gmail.com','+5491155500022','Instagram','meeting_scheduled',1800,owner_id,null,(now()+'5 days'::interval)::date,now()-'15 days'::interval),
+      ('Pablo Reyes','pablo.r@gmail.com','+5491155500023','Referido','meeting_scheduled',1800,owner_id,null,(now()+'2 days'::interval)::date,now()-'12 days'::interval),
+      ('Adriana Flores','adriana.f@gmail.com','+5491155500024','ManyChat','meeting_scheduled',1800,owner_id,'E-commerce, MRR $8k. Bien calificada.',(now()+'7 days'::interval)::date,now()-'18 days'::interval),
+      ('Rodrigo Vega','rodrigo.v@gmail.com','+5491155500025','Facebook Ads','meeting_scheduled',1800,owner_id,null,(now()+'4 days'::interval)::date,now()-'16 days'::interval),
+      ('Marcela Torres','marcela.t@gmail.com','+5491155500026','Instagram','meeting_scheduled',1800,owner_id,null,(now()+'6 days'::interval)::date,now()-'19 days'::interval),
+      ('Sebastián Álvarez','sebastian.a@gmail.com','+5491155500027','Instagram','meeting_scheduled',1800,owner_id,null,(now()+'3 days'::interval)::date,now()-'14 days'::interval),
+      ('Natalia Ríos','natalia.r@gmail.com','+5491155500028','ManyChat','meeting_scheduled',1800,owner_id,'Muy interesada en el programa de 6 meses.',(now()+'5 days'::interval)::date,now()-'13 days'::interval),
+      ('Fernando Gómez','fernando.g@gmail.com','+5491155500029','Referido','meeting_scheduled',5400,owner_id,'Alto potencial. Referido por alumno activo.',(now()+'2 days'::interval)::date,now()-'10 days'::interval),
+      ('Isabella García','isabella.g@gmail.com','+5491155500030','Instagram','meeting_scheduled',1800,owner_id,null,(now()+'8 days'::interval)::date,now()-'21 days'::interval),
+      ('Agustín Romero','agustin.r@gmail.com','+5491155500031','ManyChat','meeting_scheduled',1800,owner_id,null,(now()+'6 days'::interval)::date,now()-'17 days'::interval),
+      ('Verónica Muñoz','veronica.m@gmail.com','+5491155500032','Facebook Ads','meeting_scheduled',1800,owner_id,null,(now()+'9 days'::interval)::date,now()-'22 days'::interval),
+      ('Joaquín Suárez','joaquin.s@gmail.com','+5491155500033','Instagram','meeting_scheduled',3600,owner_id,'Marca personal fuerte, 15k seguidores.',(now()+'4 days'::interval)::date,now()-'15 days'::interval),
+      ('Clara Heredia','clara.h@gmail.com','+5491155500034','Referido','meeting_scheduled',1800,owner_id,null,(now()+'7 days'::interval)::date,now()-'20 days'::interval),
+      ('Máximo Peralta','maximo.p@gmail.com','+5491155500035','Instagram','meeting_scheduled',1800,owner_id,null,(now()+'10 days'::interval)::date,now()-'25 days'::interval);
 
     -- MEETING_DONE (10)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,last_contact_at,expected_close_date,created_at) VALUES
-      ('Ana Torres','ana.t@gmail.com','+5491155500036','Instagram','meeting_done',1800,owner_id,owner_id,'Llamada excelente. Muy interesada, pidió propuesta. Próx: enviar hoy.',now()-'1 day'::interval,(now()+'3 days'::interval)::date,now()-'15 days'::interval),
-      ('Sebastián Romero','sebastian.rom@gmail.com','+5491155500037','Referido','meeting_done',1800,owner_id,owner_id,'5 días sin respuesta post-llamada. Hacer follow-up.',now()-'5 days'::interval,(now()+'5 days'::interval)::date,now()-'18 days'::interval),
-      ('Beatriz Solís','beatriz.s@gmail.com','+5491155500038','ManyChat','meeting_done',1800,owner_id,owner_id,'Interesada pero pide más tiempo para decidir.',now()-'3 days'::interval,(now()+'7 days'::interval)::date,now()-'20 days'::interval),
-      ('Ricardo Núñez','ricardo.n@gmail.com','+5491155500039','Facebook Ads','meeting_done',3600,owner_id,owner_id,'Emprendedor digital bien calificado. $12k MRR actual.',now()-'2 days'::interval,(now()+'4 days'::interval)::date,now()-'16 days'::interval),
-      ('Pilar Aguilar','pilar.a@gmail.com','+5491155500040','Instagram','meeting_done',1800,owner_id,owner_id,null,now()-'4 days'::interval,(now()+'6 days'::interval)::date,now()-'19 days'::interval),
-      ('Ezequiel Mora','ezequiel.m@gmail.com','+5491155500041','Instagram','meeting_done',1800,owner_id,owner_id,'Quiere empezar el próximo mes. Muy motivado.',now()-'2 days'::interval,(now()+'5 days'::interval)::date,now()-'14 days'::interval),
-      ('Lara Jiménez','lara.j@gmail.com','+5491155500042','ManyChat','meeting_done',1800,owner_id,owner_id,null,now()-'6 days'::interval,(now()+'8 days'::interval)::date,now()-'22 days'::interval),
-      ('Hernán Ponce','hernan.p@gmail.com','+5491155500043','Referido','meeting_done',5400,owner_id,owner_id,'Empresa con 5 empleados. Quiere escalar ventas.',now()-'1 day'::interval,(now()+'3 days'::interval)::date,now()-'12 days'::interval),
-      ('Cecilia Varela','cecilia.v@gmail.com','+5491155500044','Instagram','meeting_done',1800,owner_id,owner_id,null,now()-'7 days'::interval,(now()+'10 days'::interval)::date,now()-'24 days'::interval),
-      ('Bruno Cardozo','bruno.c@gmail.com','+5491155500045','Facebook Ads','meeting_done',1800,owner_id,owner_id,null,now()-'3 days'::interval,(now()+'5 days'::interval)::date,now()-'17 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,expected_close_date,created_at) VALUES
+      ('Ana Torres','ana.t@gmail.com','+5491155500036','Instagram','meeting_done',1800,owner_id,'Llamada excelente. Muy interesada, pidió propuesta. Próx: enviar hoy.',(now()+'3 days'::interval)::date,now()-'15 days'::interval),
+      ('Sebastián Romero','sebastian.rom@gmail.com','+5491155500037','Referido','meeting_done',1800,owner_id,'5 días sin respuesta post-llamada. Hacer follow-up.',(now()+'5 days'::interval)::date,now()-'18 days'::interval),
+      ('Beatriz Solís','beatriz.s@gmail.com','+5491155500038','ManyChat','meeting_done',1800,owner_id,'Interesada pero pide más tiempo para decidir.',(now()+'7 days'::interval)::date,now()-'20 days'::interval),
+      ('Ricardo Núñez','ricardo.n@gmail.com','+5491155500039','Facebook Ads','meeting_done',3600,owner_id,'Emprendedor digital bien calificado. $12k MRR actual.',(now()+'4 days'::interval)::date,now()-'16 days'::interval),
+      ('Pilar Aguilar','pilar.a@gmail.com','+5491155500040','Instagram','meeting_done',1800,owner_id,null,(now()+'6 days'::interval)::date,now()-'19 days'::interval),
+      ('Ezequiel Mora','ezequiel.m@gmail.com','+5491155500041','Instagram','meeting_done',1800,owner_id,'Quiere empezar el próximo mes. Muy motivado.',(now()+'5 days'::interval)::date,now()-'14 days'::interval),
+      ('Lara Jiménez','lara.j@gmail.com','+5491155500042','ManyChat','meeting_done',1800,owner_id,null,(now()+'8 days'::interval)::date,now()-'22 days'::interval),
+      ('Hernán Ponce','hernan.p@gmail.com','+5491155500043','Referido','meeting_done',5400,owner_id,'Empresa con 5 empleados. Quiere escalar ventas.',(now()+'3 days'::interval)::date,now()-'12 days'::interval),
+      ('Cecilia Varela','cecilia.v@gmail.com','+5491155500044','Instagram','meeting_done',1800,owner_id,null,(now()+'10 days'::interval)::date,now()-'24 days'::interval),
+      ('Bruno Cardozo','bruno.c@gmail.com','+5491155500045','Facebook Ads','meeting_done',1800,owner_id,null,(now()+'5 days'::interval)::date,now()-'17 days'::interval);
 
     -- PROPOSAL_SENT (8)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,last_contact_at,expected_close_date,created_at) VALUES
-      ('Lucía Vargas','lucia.v@gmail.com','+5491155500046','Instagram','proposal_sent',5400,owner_id,owner_id,'Propuesta de 3 meses enviada. Tiene preguntas sobre el metodología.',now()-'3 days'::interval,(now()+'7 days'::interval)::date,now()-'20 days'::interval),
-      ('Marco Valdez','marco.val@gmail.com','+5491155500047','Referido','proposal_sent',1800,owner_id,owner_id,null,now()-'4 days'::interval,(now()+'5 days'::interval)::date,now()-'22 days'::interval),
-      ('Alejandra Cruz','alejandra.c@gmail.com','+5491155500048','Instagram','proposal_sent',1800,owner_id,owner_id,'Leyó la propuesta, tiene preguntas sobre el programa.',now()-'2 days'::interval,(now()+'6 days'::interval)::date,now()-'18 days'::interval),
-      ('Iván Delgado','ivan.d@gmail.com','+5491155500049','ManyChat','proposal_sent',3600,owner_id,owner_id,'Propuesta premium enviada. Evaluando con su socio.',now()-'5 days'::interval,(now()+'8 days'::interval)::date,now()-'25 days'::interval),
-      ('Nadia Bravo','nadia.b@gmail.com','+5491155500050','Facebook Ads','proposal_sent',1800,owner_id,owner_id,null,now()-'6 days'::interval,(now()+'9 days'::interval)::date,now()-'26 days'::interval),
-      ('Osvaldo Quiroga','osvaldo.q@gmail.com','+5491155500051','Referido','proposal_sent',5400,owner_id,owner_id,'Empresa en crecimiento. Propuesta enterprise enviada.',now()-'3 days'::interval,(now()+'7 days'::interval)::date,now()-'21 days'::interval),
-      ('Miriam Fuentes','miriam.f@gmail.com','+5491155500052','Instagram','proposal_sent',1800,owner_id,owner_id,null,now()-'7 days'::interval,(now()+'10 days'::interval)::date,now()-'28 days'::interval),
-      ('Leandro Acosta','leandro.a@gmail.com','+5491155500053','Instagram','proposal_sent',1800,owner_id,owner_id,'Quiere arrancar en junio. Esperando confirmación.',now()-'2 days'::interval,(now()+'5 days'::interval)::date,now()-'17 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,expected_close_date,created_at) VALUES
+      ('Lucía Vargas','lucia.v@gmail.com','+5491155500046','Instagram','proposal_sent',5400,owner_id,'Propuesta de 3 meses enviada. Tiene preguntas sobre el metodología.',(now()+'7 days'::interval)::date,now()-'20 days'::interval),
+      ('Marco Valdez','marco.val@gmail.com','+5491155500047','Referido','proposal_sent',1800,owner_id,null,(now()+'5 days'::interval)::date,now()-'22 days'::interval),
+      ('Alejandra Cruz','alejandra.c@gmail.com','+5491155500048','Instagram','proposal_sent',1800,owner_id,'Leyó la propuesta, tiene preguntas sobre el programa.',(now()+'6 days'::interval)::date,now()-'18 days'::interval),
+      ('Iván Delgado','ivan.d@gmail.com','+5491155500049','ManyChat','proposal_sent',3600,owner_id,'Propuesta premium enviada. Evaluando con su socio.',(now()+'8 days'::interval)::date,now()-'25 days'::interval),
+      ('Nadia Bravo','nadia.b@gmail.com','+5491155500050','Facebook Ads','proposal_sent',1800,owner_id,null,(now()+'9 days'::interval)::date,now()-'26 days'::interval),
+      ('Osvaldo Quiroga','osvaldo.q@gmail.com','+5491155500051','Referido','proposal_sent',5400,owner_id,'Empresa en crecimiento. Propuesta enterprise enviada.',(now()+'7 days'::interval)::date,now()-'21 days'::interval),
+      ('Miriam Fuentes','miriam.f@gmail.com','+5491155500052','Instagram','proposal_sent',1800,owner_id,null,(now()+'10 days'::interval)::date,now()-'28 days'::interval),
+      ('Leandro Acosta','leandro.a@gmail.com','+5491155500053','Instagram','proposal_sent',1800,owner_id,'Quiere arrancar en junio. Esperando confirmación.',(now()+'5 days'::interval)::date,now()-'17 days'::interval);
 
     -- NEGOTIATION (4)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,last_contact_at,expected_close_date,created_at) VALUES
-      ('Federico Acosta','federico.a@gmail.com','+5491155500054','Referido','negotiation',5400,owner_id,owner_id,'🔥 Llamada de cierre hoy a las 16:30. Muy probable cierre.',now(),'2026-05-21',now()-'25 days'::interval),
-      ('Victoria Molina','victoria.m@gmail.com','+5491155500055','Instagram','negotiation',3600,owner_id,owner_id,'Pide descuento por compromiso de 6 meses. En evaluación.',now()-'2 days'::interval,(now()+'3 days'::interval)::date,now()-'22 days'::interval),
-      ('Ramiro Estrada','ramiro.e@gmail.com','+5491155500056','Facebook Ads','negotiation',1800,owner_id,owner_id,'Último seguimiento pendiente. Dar urgencia.',now()-'3 days'::interval,(now()+'2 days'::interval)::date,now()-'20 days'::interval),
-      ('Lorena Cabrera','lorena.c@gmail.com','+5491155500057','ManyChat','negotiation',5400,owner_id,owner_id,'Empresa de $25k MRR. Alto potencial de cierre.',now()-'1 day'::interval,(now()+'1 day'::interval)::date,now()-'18 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,expected_close_date,created_at) VALUES
+      ('Federico Acosta','federico.a@gmail.com','+5491155500054','Referido','negotiation',5400,owner_id,'🔥 Llamada de cierre hoy a las 16:30. Muy probable cierre.','2026-05-21',now()-'25 days'::interval),
+      ('Victoria Molina','victoria.m@gmail.com','+5491155500055','Instagram','negotiation',3600,owner_id,'Pide descuento por compromiso de 6 meses. En evaluación.',(now()+'3 days'::interval)::date,now()-'22 days'::interval),
+      ('Ramiro Estrada','ramiro.e@gmail.com','+5491155500056','Facebook Ads','negotiation',1800,owner_id,'Último seguimiento pendiente. Dar urgencia.',(now()+'2 days'::interval)::date,now()-'20 days'::interval),
+      ('Lorena Cabrera','lorena.c@gmail.com','+5491155500057','ManyChat','negotiation',5400,owner_id,'Empresa de $25k MRR. Alto potencial de cierre.',(now()+'1 day'::interval)::date,now()-'18 days'::interval);
 
     -- WON (2)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,last_contact_at,closed_at,created_at) VALUES
-      ('Carla Ibáñez','carla.i@gmail.com','+5491155500058','Instagram','won',1800,owner_id,owner_id,'Firmó contrato de 3 meses. Inicio el próximo lunes. 🎉',now()-'5 days'::interval,now()-'5 days'::interval,now()-'30 days'::interval),
-      ('Ignacio Correa','ignacio.c@gmail.com','+5491155500059','Referido','won',5400,owner_id,owner_id,'Cerró por 3 meses completos. Excelente predisposición. 💪',now()-'8 days'::interval,now()-'8 days'::interval,now()-'35 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,closed_at,created_at) VALUES
+      ('Carla Ibáñez','carla.i@gmail.com','+5491155500058','Instagram','won',1800,owner_id,'Firmó contrato de 3 meses. Inicio el próximo lunes. 🎉',now()-'5 days'::interval,now()-'30 days'::interval),
+      ('Ignacio Correa','ignacio.c@gmail.com','+5491155500059','Referido','won',5400,owner_id,'Cerró por 3 meses completos. Excelente predisposición. 💪',now()-'8 days'::interval,now()-'35 days'::interval);
 
     -- LOST (1)
-    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,created_by,notes,closed_at,created_at) VALUES
-      ('Camila Ruiz','camila.ruiz@gmail.com','+5491155500060','Instagram','lost',0,owner_id,owner_id,'Solicitó reembolso en el primer mes. Razón: falta de tiempo. Documentar aprendizajes.',now()-'10 days'::interval,now()-'45 days'::interval);
+    INSERT INTO leads (full_name,email,phone,source,stage,amount,assigned_to,notes,closed_at,created_at) VALUES
+      ('Camila Ruiz','camila.ruiz@gmail.com','+5491155500060','Instagram','lost',0,owner_id,'Solicitó reembolso en el primer mes. Razón: falta de tiempo. Documentar aprendizajes.',now()-'10 days'::interval,now()-'45 days'::interval);
 
   END IF; -- leads
 
