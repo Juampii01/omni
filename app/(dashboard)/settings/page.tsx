@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/page-header"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { Palette, Plug, CreditCard, User } from "lucide-react"
+
+export const metadata = { title: "Configuración — Omni" }
 import { cn } from "@/lib/utils"
 
 const SETTING_GROUPS = [

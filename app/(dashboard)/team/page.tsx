@@ -1,11 +1,11 @@
-import { requireRole } from "@/lib/auth/get-user"
+import { requireAuth } from "@/lib/auth/get-user"
 import { createClient } from "@/lib/supabase/server"
 import { TeamClient } from "./team-client"
 
 export const metadata = { title: "Equipo" }
 
 export default async function TeamPage() {
-  await requireRole("manager")
+  await requireAuth()
   const supabase = await createClient()
 
   const [{ data: membersData }, { data: depsData }] = await Promise.all([

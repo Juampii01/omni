@@ -57,7 +57,7 @@ export function UserMenu() {
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/settings")}>
+        <DropdownMenuItem onClick={() => router.push("/settings/profile")}>
           <User className="mr-2 h-4 w-4" />
           Mi perfil
         </DropdownMenuItem>

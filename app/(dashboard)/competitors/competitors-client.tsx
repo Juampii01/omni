@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, ExternalLink, Binoculars } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, ExternalLink, Binoculars, Instagram, Music2, Youtube } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -82,25 +82,25 @@ function CompetitorCard({
   onEdit: (c: Competitor) => void
   onDelete: (id: string) => void
 }) {
-  const socials: { icon: string; label: string; url: string }[] = []
+  const socials: { Icon: React.ComponentType<{ className?: string }>; label: string; url: string }[] = []
 
   if (competitor.instagram_handle) {
     socials.push({
-      icon: "📸",
+      Icon: Instagram,
       label: `@${competitor.instagram_handle}`,
       url: `https://instagram.com/${competitor.instagram_handle}`,
     })
   }
   if (competitor.tiktok_handle) {
     socials.push({
-      icon: "🎵",
+      Icon: Music2,
       label: `@${competitor.tiktok_handle}`,
       url: `https://tiktok.com/@${competitor.tiktok_handle}`,
     })
   }
   if (competitor.youtube_handle) {
     socials.push({
-      icon: "📺",
+      Icon: Youtube,
       label: `@${competitor.youtube_handle}`,
       url: `https://youtube.com/@${competitor.youtube_handle}`,
     })
@@ -151,7 +151,7 @@ function CompetitorCard({
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
               >
-                <span className="text-sm leading-none">{s.icon}</span>
+                <s.Icon className="h-3.5 w-3.5 flex-shrink-0" />
                 <span className="truncate">{s.label}</span>
               </a>
             ))}
@@ -318,7 +318,7 @@ function CompetitorDialog({
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5">
-                  <span>📸</span> Instagram
+                  <Instagram className="h-3.5 w-3.5 text-muted-foreground" /> Instagram
                 </Label>
                 <div className="flex items-center">
                   <span className="inline-flex items-center px-3 h-9 rounded-l-md border border-r-0 border-border bg-muted text-sm text-muted-foreground">
@@ -334,7 +334,7 @@ function CompetitorDialog({
               </div>
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5">
-                  <span>🎵</span> TikTok
+                  <Music2 className="h-3.5 w-3.5 text-muted-foreground" /> TikTok
                 </Label>
                 <div className="flex items-center">
                   <span className="inline-flex items-center px-3 h-9 rounded-l-md border border-r-0 border-border bg-muted text-sm text-muted-foreground">
@@ -350,7 +350,7 @@ function CompetitorDialog({
               </div>
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5">
-                  <span>📺</span> YouTube
+                  <Youtube className="h-3.5 w-3.5 text-muted-foreground" /> YouTube
                 </Label>
                 <div className="flex items-center">
                   <span className="inline-flex items-center px-3 h-9 rounded-l-md border border-r-0 border-border bg-muted text-sm text-muted-foreground">
@@ -402,7 +402,7 @@ function CompetitorDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={saving} className="bg-brand hover:bg-brand-hover">
-              {saving ? "Guardando…" : editing ? "Guardar cambios" : "Añadir competidor"}
+              {saving ? "Guardando…" : editing ? "Guardar cambios" : "Nuevo competidor"}
             </Button>
           </DialogFooter>
         </form>
@@ -487,7 +487,7 @@ export function CompetitorsClient({
       >
         <Button onClick={openCreate} className="bg-brand hover:bg-brand-hover">
           <Plus className="h-4 w-4 mr-2" />
-          Añadir competidor
+          Nuevo competidor
         </Button>
       </PageHeader>
 

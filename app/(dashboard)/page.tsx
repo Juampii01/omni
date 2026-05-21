@@ -54,12 +54,14 @@ export default async function OverviewPage() {
   const settings = rawSettings as { business_name: string; onboarding_completed: boolean } | null
 
   const businessName = settings?.business_name ?? "tu empresa"
-  const firstName = user.full_name?.split(" ")[0] ?? "ahí"
+  // Si full_name contiene "@" es porque se guardó el email como nombre — ignorarlo
+  const rawName = user.full_name?.includes("@") ? null : user.full_name
+  const firstName = rawName?.split(" ")[0] ?? null
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title={`Buen día, ${firstName} 👋`}
+        title={firstName ? `Buen día, ${firstName} 👋` : "Buen día 👋"}
         description={`Resumen operativo de ${businessName}`}
       />
 

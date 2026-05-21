@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Instagram, BarChart2, Youtube } from "lucide-react"
+
+export const metadata = { title: "Integraciones — Omni" }
 import Link from "next/link"
 
 const INTEGRATIONS = [

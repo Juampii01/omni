@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
+export const metadata = { title: "Facturación — Omni" }
+
 export default async function BillingPage() {
   await requireAuth()
   const supabase = await createClient()

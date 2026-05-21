@@ -64,7 +64,7 @@ const NAV = [
   {
     section: "Comunicación",
     items: [
-      { label: "Canales", href: "/comms", icon: "message-square" },
+      { label: "Comunicaciones", href: "/comms", icon: "message-square" },
     ],
   },
 ]
