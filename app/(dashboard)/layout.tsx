@@ -10,7 +10,7 @@ export default async function DashboardRootLayout({
 }: {
   children: React.ReactNode
 }) {
-  await requireAuth()
+  const user = await requireAuth()
 
   // Load client settings for dynamic theming (server-side = no FOUC)
   const supabase = await createClient()

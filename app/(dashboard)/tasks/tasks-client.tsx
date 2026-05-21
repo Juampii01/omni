@@ -187,18 +187,29 @@ function TaskDialog({ open, editing, defaultStatus, profiles, departments, curre
 }
 
 // ── Task Card ─────────────────────────────────────────────────────────────────
-function TaskCard({ task, profiles, onEdit, onDelete, onStatusChange }: {
+function TaskCard({ task, profiles, isDragging, onEdit, onDelete, onStatusChange, onDragStart, onDragEnd }: {
   task: Task
   profiles: Profile[]
+  isDragging: boolean
   onEdit: (t: Task) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, status: TaskStatus) => void
+  onDragStart: (id: string) => void
+  onDragEnd: () => void
 }) {
   const assignee = profiles.find(p => p.id === task.assigned_to)
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "done"
 
   return (
-    <Card className="border-border shadow-sm hover:shadow-md transition-shadow cursor-default group">
+    <Card
+      draggable
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart(task.id) }}
+      onDragEnd={onDragEnd}
+      className={cn(
+        "border-border shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing group",
+        isDragging && "opacity-40 scale-95"
+      )}
+    >
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <p className="text-xs font-medium leading-snug flex-1">{task.title}</p>
@@ -271,6 +282,8 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>("todo")
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<TaskStatus | null>(null)
 
   function openCreate(status: TaskStatus = "todo") { setEditing(null); setDefaultStatus(status); setDialogOpen(true) }
   function openEdit(t: Task) { setEditing(t); setDialogOpen(true) }
@@ -301,11 +314,21 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
   }
 
   async function handleStatusChange(id: string, status: TaskStatus) {
-    const sb = createClient() as any
+    const prevTasks = tasks
     const extra = status === "done" ? { completed_at: new Date().toISOString() } : { completed_at: null }
-    const { error } = await sb.from("tasks").update({ status, ...extra }).eq("id", id)
-    if (error) { toast.error("No se pudo mover"); return }
+    // Optimistic update
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status, ...extra } : t))
+    const sb = createClient() as any
+    const { error } = await sb.from("tasks").update({ status, ...extra }).eq("id", id)
+    if (error) { toast.error("No se pudo mover"); setTasks(prevTasks) }
+  }
+
+  function handleDrop(targetStatus: TaskStatus) {
+    setDragOverCol(null)
+    if (!draggingId) return
+    const task = tasks.find(t => t.id === draggingId)
+    if (!task || task.status === targetStatus) return
+    handleStatusChange(draggingId, targetStatus)
   }
 
   const byStatus = (status: TaskStatus) => tasks.filter(t => t.status === status)
@@ -336,8 +359,15 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
           {KANBAN_COLS.map(col => {
             const colTasks = byStatus(col.status)
+            const isOver = dragOverCol === col.status && draggingId !== null
             return (
-              <div key={col.status} className="space-y-2">
+              <div
+                key={col.status}
+                className={cn("space-y-2 rounded-xl p-1 transition-colors", isOver && "bg-brand/5 ring-2 ring-brand/30")}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(col.status) }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverCol(null) }}
+                onDrop={() => handleDrop(col.status)}
+              >
                 <div className={cn("border-t-2 pt-2 flex items-center justify-between", col.color)}>
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{col.label}</span>
                   <span className="text-xs font-bold tabular-nums">{colTasks.length}</span>
@@ -348,11 +378,17 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
                       key={task.id}
                       task={task}
                       profiles={profiles}
+                      isDragging={draggingId === task.id}
                       onEdit={openEdit}
                       onDelete={requestDelete}
                       onStatusChange={handleStatusChange}
+                      onDragStart={setDraggingId}
+                      onDragEnd={() => { setDraggingId(null); setDragOverCol(null) }}
                     />
                   ))}
+                  {isOver && draggingId && (
+                    <div className="h-16 rounded-lg border-2 border-dashed border-brand/40 bg-brand/5 transition-all" />
+                  )}
                   <button
                     onClick={() => openCreate(col.status)}
                     className="w-full text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg py-2 hover:border-brand/40 transition-colors"

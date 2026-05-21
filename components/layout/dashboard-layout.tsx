@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/sonner"
+import { LiveNotifications } from "@/components/live-notifications"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -42,6 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       <Toaster richColors position="bottom-right" />
+      <LiveNotifications />
     </div>
   )
 }

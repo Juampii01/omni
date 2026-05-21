@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BarChart2, Users, GitBranch,
   CheckSquare, UserCog, FileText, Binoculars,
   Sparkles, ClipboardList, MessageSquare, Settings,
-  ChevronRight,
+  ChevronRight, Radio, TrendingUp, Plug, Smartphone,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -23,6 +23,10 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   "clipboard-list":   ClipboardList,
   "message-square":   MessageSquare,
   "settings":         Settings,
+  "radio":            Radio,
+  "trending-up":      TrendingUp,
+  "plug":             Plug,
+  "smartphone":       Smartphone,
 }
 
 const NAV = [
@@ -65,6 +69,15 @@ const NAV = [
     section: "Comunicación",
     items: [
       { label: "Comunicaciones", href: "/comms", icon: "message-square" },
+    ],
+  },
+  {
+    section: "Canales",
+    items: [
+      { label: "Redes Sociales",  href: "/socials",      icon: "radio" },
+      { label: "Publicidad",      href: "/ads",           icon: "trending-up" },
+      { label: "Integraciones",   href: "/integrations",  icon: "plug" },
+      { label: "App Móvil",       href: "/mobile",        icon: "smartphone" },
     ],
   },
 ]
