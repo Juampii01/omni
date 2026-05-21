@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth/get-user"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { LastSeenUpdater } from "@/components/last-seen-updater"
 import { buildThemeCssVars, themeToCss } from "@/lib/theme/load-theme"
 import { BRAND_COLOR_HEX } from "@/lib/constants"
 
@@ -27,6 +28,7 @@ export default async function DashboardRootLayout({
     <>
       {/* Inject dynamic theme vars — prevents FOUC */}
       <style dangerouslySetInnerHTML={{ __html: `:root { ${inlineCss} }` }} />
+      <LastSeenUpdater userId={user.id} />
       <DashboardLayout>{children}</DashboardLayout>
     </>
   )
