@@ -205,7 +205,7 @@ function LeadDialog({ open, editing, profiles, departments, onClose, onSaved }: 
 function StageSummary({ leads }: { leads: Lead[] }) {
   const stages: LeadStage[] = ["new", "qualified", "meeting_scheduled", "meeting_done", "proposal_sent", "negotiation", "won", "lost"]
   return (
-    <div className="grid grid-cols-4 lg:grid-cols-8 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
       {stages.map(stage => {
         const count = leads.filter(l => l.stage === stage).length
         return (
@@ -338,7 +338,8 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-border shadow-sm">
+        <Card className="border-border shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -407,6 +408,7 @@ export function LeadsClient({ initialLeads, profiles, departments }: {
               })}
             </TableBody>
           </Table>
+          </div>
         </Card>
       )}
 

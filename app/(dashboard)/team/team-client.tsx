@@ -310,7 +310,7 @@ export function TeamClient({
             {ROLE_LABELS[member.role]}
           </span>
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden sm:table-cell">
           {dept ? (
             <span
               className="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -322,7 +322,7 @@ export function TeamClient({
             <span className="text-xs text-muted-foreground">—</span>
           )}
         </TableCell>
-        <TableCell className="text-xs text-muted-foreground">
+        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
           {formatLastSeen(member.last_seen_at)}
         </TableCell>
         <TableCell>
@@ -365,14 +365,15 @@ export function TeamClient({
         </div>
       </PageHeader>
 
-      <Card className="border-border shadow-sm">
+      <Card className="border-border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Miembro</TableHead>
               <TableHead>Rol</TableHead>
-              <TableHead>Departamento</TableHead>
-              <TableHead>Última actividad</TableHead>
+              <TableHead className="hidden sm:table-cell">Departamento</TableHead>
+              <TableHead className="hidden md:table-cell">Última actividad</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -388,6 +389,7 @@ export function TeamClient({
             )}
           </TableBody>
         </Table>
+        </div>
       </Card>
 
       <InviteDialog
