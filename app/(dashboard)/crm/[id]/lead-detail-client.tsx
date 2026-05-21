@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -107,6 +107,29 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
   const router = useRouter()
   const [lead, setLead] = useState(initialLead)
   const [activities, setActivities] = useState(initialActivities)
+
+  // ── Realtime: listen for updates to THIS lead ──────────────────────────────
+  useEffect(() => {
+    const sb = createClient()
+    const channel = (sb as any)
+      .channel(`lead-detail-${initialLead.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "leads", filter: `id=eq.${initialLead.id}` },
+        (payload: any) => {
+          if (payload.new?.deleted_at) {
+            // Lead was soft-deleted by another user → redirect
+            toast("Lead eliminado por otro usuario")
+            router.push("/crm")
+          } else {
+            setLead(prev => ({ ...prev, ...payload.new }))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { (sb as any).removeChannel(channel) }
+  }, [initialLead.id, router])
   const [noteText, setNoteText] = useState("")
   const [addingNote, setAddingNote] = useState(false)
   const [newActivityType, setNewActivityType] = useState<Activity["type"]>("note")

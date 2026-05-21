@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRealtimeTasks } from "@/hooks/use-realtime-tasks"
 import { createClient } from "@/lib/supabase/client"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -276,7 +277,7 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
   departments: Department[]
   currentUserId: string
 }) {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const { tasks, setTasks } = useRealtimeTasks<Task>(initialTasks)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Task | null>(null)
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>("todo")

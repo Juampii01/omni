@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
+import { useRealtimeLeads } from "@/hooks/use-realtime-leads"
 import { createClient } from "@/lib/supabase/client"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -305,7 +306,7 @@ export function PipelineClient({
   initialLeads: Lead[]
   profiles: Profile[]
 }) {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads)
+  const { leads, setLeads } = useRealtimeLeads<Lead>(initialLeads, "realtime-pipeline")
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
   const totalValue = leads.reduce((s, l) => s + (l.amount ?? 0), 0)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRealtimeLeads } from "@/hooks/use-realtime-leads"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { PageHeader } from "@/components/page-header"
@@ -239,7 +240,7 @@ export function LeadsClient({ initialLeads, profiles, departments, pagination }:
   pagination:    Pagination
 }) {
   const router = useRouter()
-  const [leads, setLeads] = useState<Lead[]>(initialLeads)
+  const { leads, setLeads } = useRealtimeLeads<Lead>(initialLeads)
   const [search, setSearch] = useState("")
   // Stage filter is server-side via URL — read from pagination prop
   const filterStage = pagination.stage
