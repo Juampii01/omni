@@ -490,11 +490,7 @@ export function CompetitorsClient({
     <div className="space-y-6">
       <PageHeader
         title="Competidores"
-        description={
-          competitors.length > 0
-            ? `${competitors.length} competidor${competitors.length !== 1 ? "es" : ""} registrado${competitors.length !== 1 ? "s" : ""}`
-            : undefined
-        }
+        description={`${competitors.length} competidor${competitors.length !== 1 ? "es" : ""} registrado${competitors.length !== 1 ? "s" : ""}`}
       >
         <Button onClick={openCreate} className="bg-brand hover:bg-brand-hover">
           <Plus className="h-4 w-4 mr-2" />
@@ -544,13 +540,13 @@ export function CompetitorsClient({
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {competitors.length === 0
-                ? "Añadí tu primer competidor para empezar a hacer seguimiento."
+                ? "Creá tu primer competidor para empezar a hacer seguimiento."
                 : "Probá con otro término de búsqueda."}
             </p>
             {competitors.length === 0 && (
               <Button onClick={openCreate} className="mt-4 bg-brand hover:bg-brand-hover">
                 <Plus className="h-4 w-4 mr-2" />
-                Añadir primer competidor
+                Crear primer competidor
               </Button>
             )}
           </CardContent>

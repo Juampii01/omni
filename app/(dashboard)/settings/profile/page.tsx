@@ -209,7 +209,11 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <p className="text-sm font-medium">{fullName || email}</p>
+              {fullName ? (
+                <p className="text-sm font-medium">{fullName}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Sin nombre</p>
+              )}
               <p className="text-xs text-muted-foreground mt-0.5">
                 JPG, PNG o WebP · Máx. 2 MB
               </p>
