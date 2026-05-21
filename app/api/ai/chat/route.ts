@@ -20,7 +20,7 @@ async function getDashboardContext(supabase: Awaited<ReturnType<typeof createCli
   const settings = settingsRes.data
   const leads: any[] = leadsRes.data ?? []
   const tasks: any[] = tasksRes.data ?? []
-  const kpis: any[] = kpisRes.data ?? []
+  const kpis:  any[] = kpisRes.data ?? []
 
   const STAGE_LABELS: Record<string, string> = {
     new: "Nuevos", qualified: "Calificados", meeting_scheduled: "Reunion agendada",
@@ -101,11 +101,16 @@ async function getDashboardContext(supabase: Awaited<ReturnType<typeof createCli
 // ── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  try { await requireAuth() } catch {
+  let user: Awaited<ReturnType<typeof requireAuth>>
+  try {
+    user = await requireAuth()
+  } catch {
     return new Response("No autorizado", { status: 401 })
   }
 
-  const { messages } = await req.json()
+  const body = await req.json()
+  const { messages, conversationId: incomingConvId } = body
+
   if (!messages || !Array.isArray(messages)) {
     return new Response("Mensajes invalidos", { status: 400 })
   }
@@ -134,7 +139,49 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── Build context + prompt ────────────────────────────────────────────────
+  // ── Get or create conversation ─────────────────────────────────────────────
+  let conversationId: string | null = incomingConvId ?? null
+
+  if (!conversationId) {
+    // Title = primeros 60 chars del primer mensaje del usuario
+    const firstUserMsg = messages.find((m: any) => m.role === "user")
+    const title = (firstUserMsg?.content ?? "Nueva conversación").slice(0, 60).trim()
+
+    const { data: conv, error: convError } = await sb
+      .from("ai_conversations")
+      .insert({ user_id: user.id, title, context_type: "general" })
+      .select("id")
+      .single()
+
+    if (convError) {
+      console.error("[ai/chat] Failed to create conversation:", convError)
+    } else {
+      conversationId = conv?.id ?? null
+    }
+  } else {
+    // Validate that this conversation belongs to the current user
+    const { data: conv } = await sb
+      .from("ai_conversations")
+      .select("id")
+      .eq("id", conversationId)
+      .single()
+
+    if (!conv) {
+      return new Response("Conversación no encontrada", { status: 404 })
+    }
+  }
+
+  // ── Save user message ──────────────────────────────────────────────────────
+  const userMsg = messages[messages.length - 1]
+  if (conversationId && userMsg?.role === "user") {
+    sb.from("ai_messages")
+      .insert({ conversation_id: conversationId, role: "user", content: userMsg.content })
+      .then(({ error }: any) => {
+        if (error) console.error("[ai/chat] Failed to save user message:", error)
+      })
+  }
+
+  // ── Build context + prompt ─────────────────────────────────────────────────
   const { bizName, ctx } = await getDashboardContext(supabase)
 
   const today = new Date().toLocaleDateString("es-AR", {
@@ -156,7 +203,7 @@ INSTRUCCIONES:
 - Actuá como un consultor senior que conoce la empresa a fondo.
 - Fecha de hoy: ${today}`
 
-  // ── Stream response ───────────────────────────────────────────────────────
+  // ── Stream response ────────────────────────────────────────────────────────
   const stream = anthropic.messages.stream({
     model:      "claude-opus-4-5",
     max_tokens: 1024,
@@ -165,8 +212,9 @@ INSTRUCCIONES:
   })
 
   const encoder = new TextEncoder()
-  let inputTokens  = 0
-  let outputTokens = 0
+  let inputTokens     = 0
+  let outputTokens    = 0
+  let accumulatedText = ""
 
   const readable = new ReadableStream({
     async start(controller) {
@@ -179,8 +227,9 @@ INSTRUCCIONES:
           if (chunk.type === "message_delta" && (chunk as any).usage) {
             outputTokens = (chunk as any).usage.output_tokens ?? 0
           }
-          // Stream text to client
+          // Accumulate and stream text to client
           if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+            accumulatedText += chunk.delta.text
             controller.enqueue(encoder.encode(chunk.delta.text))
           }
         }
@@ -189,8 +238,16 @@ INSTRUCCIONES:
       } finally {
         controller.close()
 
-        // ── Fire-and-forget: increment credits ──────────────────────────
         const tokensUsed = inputTokens + outputTokens
+
+        // Fire-and-forget: save assistant message + update conversation timestamp
+        if (conversationId && accumulatedText) {
+          persistAssistantMessage(conversationId, accumulatedText, tokensUsed).catch(err =>
+            console.error("[ai/chat] Failed to persist assistant message:", err)
+          )
+        }
+
+        // Fire-and-forget: increment credits counter
         if (tokensUsed > 0) {
           updateCredits(tokensUsed).catch(err =>
             console.error("[ai/chat] Failed to update credits:", err)
@@ -200,13 +257,46 @@ INSTRUCCIONES:
     },
   })
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type":    "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
-      "Cache-Control":   "no-cache",
-    },
-  })
+  const responseHeaders: Record<string, string> = {
+    "Content-Type":      "text/plain; charset=utf-8",
+    "Transfer-Encoding": "chunked",
+    "Cache-Control":     "no-cache",
+  }
+
+  if (conversationId) {
+    responseHeaders["X-Conversation-Id"]          = conversationId
+    responseHeaders["Access-Control-Expose-Headers"] = "X-Conversation-Id"
+  }
+
+  return new Response(readable, { headers: responseHeaders })
+}
+
+// ── Persist assistant message + bump conversation updated_at ──────────────────
+
+async function persistAssistantMessage(
+  conversationId: string,
+  content: string,
+  tokensUsed: number,
+) {
+  try {
+    const sb = await createServiceClient() as any
+    await sb
+      .from("ai_messages")
+      .insert({
+        conversation_id: conversationId,
+        role:            "assistant",
+        content,
+        tokens_used:     tokensUsed > 0 ? tokensUsed : null,
+        model:           "claude-opus-4-5",
+      })
+    // Bump updated_at so it appears first in the sidebar list
+    await sb
+      .from("ai_conversations")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", conversationId)
+  } catch (err) {
+    console.error("[ai/chat] persistAssistantMessage error:", err)
+  }
 }
 
 // ── Credit update (service role to bypass RLS) ────────────────────────────────

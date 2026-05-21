@@ -33,6 +33,7 @@ export function AiChatWidget() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [streaming, setStreaming] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -75,7 +76,7 @@ export function AiChatWidget() {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, conversationId }),
       })
 
       if (res.status === 429) {
@@ -85,6 +86,10 @@ export function AiChatWidget() {
         return
       }
       if (!res.ok) throw new Error()
+
+      // Capture conversation ID from response header
+      const returnedConvId = res.headers.get("X-Conversation-Id")
+      if (returnedConvId && !conversationId) setConversationId(returnedConvId)
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
@@ -116,7 +121,7 @@ export function AiChatWidget() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() }
   }
 
-  function reset() { setMessages([]); setInput("") }
+  function reset() { setMessages([]); setInput(""); setConversationId(null) }
 
   function copyMsg(text: string) {
     navigator.clipboard.writeText(text).then(() => toast.success("Copiado"))
