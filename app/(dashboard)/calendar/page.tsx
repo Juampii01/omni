@@ -9,7 +9,7 @@ export default async function CalendarPage() {
   const supabase = await createClient()
   const sb = supabase as any
 
-  const [tasksRes, leadsRes] = await Promise.all([
+  const [tasksRes, leadsRes, settingsRes] = await Promise.all([
     sb
       .from("tasks")
       .select("id, title, priority, due_date, status")
@@ -25,12 +25,23 @@ export default async function CalendarPage() {
       .not("stage", "in", '("won","lost")')
       .not("expected_close_date", "is", null)
       .order("expected_close_date", { ascending: true }),
+
+    sb
+      .from("client_settings")
+      .select("calendly_api_key, calendly_name, calendly_email")
+      .single(),
   ])
+
+  const s = settingsRes.data
+  const calendlyConnected = s?.calendly_api_key
+    ? { name: s.calendly_name ?? "", email: s.calendly_email ?? "" }
+    : null
 
   return (
     <CalendarClient
       tasks={tasksRes.data ?? []}
       leads={leadsRes.data ?? []}
+      calendlyConnected={calendlyConnected}
     />
   )
 }
