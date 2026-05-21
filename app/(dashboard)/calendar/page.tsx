@@ -28,12 +28,12 @@ export default async function CalendarPage() {
 
     sb
       .from("client_settings")
-      .select("calendly_api_key, calendly_name, calendly_email")
+      .select("calendly_api_key_encrypted, calendly_name, calendly_email")
       .single(),
   ])
 
   const s = settingsRes.data
-  const calendlyConnected = s?.calendly_api_key
+  const calendlyConnected = s?.calendly_api_key_encrypted
     ? { name: s.calendly_name ?? "", email: s.calendly_email ?? "" }
     : null
 

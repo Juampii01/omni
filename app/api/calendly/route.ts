@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth/get-user"
 import { createClient } from "@/lib/supabase/server"
+import { encrypt, decrypt } from "@/lib/crypto"
 
 const CALENDLY_BASE = "https://api.calendly.com"
 
@@ -8,6 +9,16 @@ function calendlyHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
+  }
+}
+
+/** Safely decrypt the stored key. Returns null if missing or corrupt. */
+function safeDecrypt(encrypted: string | null | undefined): string | null {
+  if (!encrypted) return null
+  try {
+    return decrypt(encrypted)
+  } catch {
+    return null
   }
 }
 
@@ -19,15 +30,16 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient()
   const { data: settings } = await (supabase as any)
     .from("client_settings")
-    .select("calendly_api_key, calendly_user_uri")
+    .select("calendly_api_key_encrypted, calendly_user_uri")
     .single()
 
-  if (!settings?.calendly_api_key) {
+  const apiKey = safeDecrypt(settings?.calendly_api_key_encrypted)
+
+  if (!apiKey) {
     return NextResponse.json({ error: "not_connected" }, { status: 400 })
   }
 
-  const apiKey   = settings.calendly_api_key as string
-  let   userUri  = settings.calendly_user_uri as string | null
+  let userUri = settings.calendly_user_uri as string | null
 
   // Resolve user URI if missing
   if (!userUri) {
@@ -62,7 +74,7 @@ export async function GET(req: NextRequest) {
   const eventsData = await eventsRes.json()
   const rawEvents: any[] = eventsData.collection ?? []
 
-  // Fetch invitees in parallel (batched, max 20)
+  // Fetch invitees in parallel (max 60 events, max 5 invitees each)
   const enriched = await Promise.all(
     rawEvents.slice(0, 60).map(async (event: any) => {
       const uuid = event.uri.split("/").pop()
@@ -92,24 +104,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "API key requerida" }, { status: 400 })
   }
 
+  const plainKey = api_key.trim()
+
   // Validate key by calling /users/me
   const meRes = await fetch(`${CALENDLY_BASE}/users/me`, {
-    headers: calendlyHeaders(api_key.trim()),
+    headers: calendlyHeaders(plainKey),
   })
 
   if (!meRes.ok) {
     return NextResponse.json({ error: "API key inválida. Verificá que sea correcta." }, { status: 400 })
   }
 
-  const me = await meRes.json()
+  const me   = await meRes.json()
   const user = me.resource
+
+  // Encrypt before storing
+  let encryptedKey: string
+  try {
+    encryptedKey = encrypt(plainKey)
+  } catch (err) {
+    console.error("Encryption error:", err)
+    return NextResponse.json(
+      { error: "Error de configuración del servidor. Contactá al soporte." },
+      { status: 500 }
+    )
+  }
 
   const supabase = await createClient()
   await (supabase as any).from("client_settings").update({
-    calendly_api_key:  api_key.trim(),
-    calendly_user_uri: user.uri,
-    calendly_name:     user.name,
-    calendly_email:    user.email,
+    calendly_api_key_encrypted: encryptedKey,
+    calendly_user_uri:          user.uri,
+    calendly_name:              user.name,
+    calendly_email:             user.email,
   })
 
   return NextResponse.json({
@@ -127,10 +153,10 @@ export async function DELETE() {
 
   const supabase = await createClient()
   await (supabase as any).from("client_settings").update({
-    calendly_api_key:  null,
-    calendly_user_uri: null,
-    calendly_name:     null,
-    calendly_email:    null,
+    calendly_api_key_encrypted: null,
+    calendly_user_uri:          null,
+    calendly_name:              null,
+    calendly_email:             null,
   })
 
   return NextResponse.json({ success: true })
