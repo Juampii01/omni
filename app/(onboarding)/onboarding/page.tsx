@@ -8,10 +8,17 @@ export default async function OnboardingPage() {
   await requireAuth()
 
   const supabase = await createClient()
-  const { data: settings } = await supabase
+  const { data: settings } = await (supabase as any)
     .from("client_settings")
     .select("business_name, brand_color, currency, onboarding_completed")
-    .single()
+    .single() as {
+      data: {
+        business_name:        string | null
+        brand_color:          string | null
+        currency:             string | null
+        onboarding_completed: boolean | null
+      } | null
+    }
 
   // Already onboarded — kick to dashboard
   if (settings?.onboarding_completed) {
