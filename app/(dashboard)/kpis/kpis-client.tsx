@@ -18,6 +18,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { KpiChartsView } from "@/components/charts/kpi-charts-view"
+import { LayoutGrid, BarChart2 } from "lucide-react"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -452,6 +454,7 @@ export function KpisClient({
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [view, setView] = useState<"table" | "charts">("table")
 
   // Month tabs — sorted descending
   const months = useMemo(
@@ -523,14 +526,44 @@ export function KpisClient({
 
   return (
     <div className="space-y-6">
-      <PageHeader title="KPIs" description="Métricas clave del negocio por período">
-        <Button onClick={openCreate} className="bg-brand hover:bg-brand-hover">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo KPI
-        </Button>
+      <PageHeader title="KPIs" description="Metricas clave del negocio por periodo">
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
+            <button
+              onClick={() => setView("table")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                view === "table"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Tabla
+            </button>
+            <button
+              onClick={() => setView("charts")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                view === "charts"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <BarChart2 className="h-3.5 w-3.5" /> Visualizaciones
+            </button>
+          </div>
+          <Button onClick={openCreate} className="bg-brand hover:bg-brand-hover">
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo KPI
+          </Button>
+        </div>
       </PageHeader>
 
-      {kpis.length > 0 && (
+      {/* ── Charts view ──────────────────────────────────────────────── */}
+      {view === "charts" && <KpiChartsView kpis={kpis} />}
+
+      {view === "table" && kpis.length > 0 && (
         <>
           {/* ── Month tabs ─────────────────────────────────────────── */}
           <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
@@ -623,7 +656,7 @@ export function KpisClient({
       )}
 
       {/* ── Grid / Empty ─────────────────────────────────────────────── */}
-      {filtered.length === 0 ? (
+      {view === "table" && filtered.length === 0 ? (
         <Card className="border-border shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center mb-4">
@@ -645,7 +678,7 @@ export function KpisClient({
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : view === "table" ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((kpi) => (
             <KpiCard
@@ -658,7 +691,7 @@ export function KpisClient({
             />
           ))}
         </div>
-      )}
+      ) : null}
 
       <KpiDialog
         open={dialogOpen}
