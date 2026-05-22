@@ -3,13 +3,17 @@
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
 
-interface AiCredits {
-  used:            number
-  limit:           number
-  percentage:      number   // 0-100
-  isLimitReached:  boolean
-  isWarning:       boolean  // true when >= 90%
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface AiCredits {
+  used:           number
+  limit:          number
+  percentage:     number   // 0–100
+  isLimitReached: boolean  // used >= limit
+  isWarning:      boolean  // percentage >= 90
 }
+
+// ── Fetcher ───────────────────────────────────────────────────────────────────
 
 async function fetchCredits(): Promise<AiCredits> {
   const sb = createClient() as any
@@ -28,10 +32,12 @@ async function fetchCredits(): Promise<AiCredits> {
   return { used, limit, percentage, isLimitReached, isWarning }
 }
 
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
 export function useAiCredits() {
   const { data, mutate, isLoading } = useSWR<AiCredits>("ai-credits", fetchCredits, {
     revalidateOnFocus: false,
-    dedupingInterval:  30_000,    // re-fetch at most every 30s
+    dedupingInterval:  30_000, // max 1 fetch every 30s
     fallbackData: {
       used: 0, limit: 100_000,
       percentage: 0, isLimitReached: false, isWarning: false,
@@ -41,7 +47,7 @@ export function useAiCredits() {
   return {
     ...(data as AiCredits),
     isLoading,
-    /** Call after each AI message to sync the counter */
+    /** Re-fetch from Supabase — call after each AI response to sync the counter */
     refresh: () => mutate(),
   }
 }

@@ -23,18 +23,18 @@ type Message = { role: "user" | "assistant"; content: string }
 // ── Suggestions ───────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
-  "¿Cómo está mi pipeline hoy? Analizalo y decime qué hacer",
-  "Resumime los KPIs del mes y decime en qué estoy fallando",
-  "¿Qué tareas urgentes tengo pendientes?",
-  "Dame 3 acciones concretas para mejorar mi tasa de conversión",
-  "Escribime un email de seguimiento para un lead que no respondió hace 5 días",
-  "¿Cómo bajo el churn rate? Dame un plan de acción",
+  "Como esta mi pipeline hoy? Analizalo y decime que hacer",
+  "Resumime los KPIs del mes y decime en que estoy fallando",
+  "Que tareas urgentes tengo pendientes?",
+  "Dame 3 acciones concretas para mejorar mi tasa de conversion",
+  "Escribime un email de seguimiento para un lead que no respondio hace 5 dias",
+  "Como bajo el churn rate? Dame un plan de accion",
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeDate(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  const diff  = Date.now() - new Date(iso).getTime()
   const mins  = Math.floor(diff / 60_000)
   const hours = Math.floor(diff / 3_600_000)
   const days  = Math.floor(diff / 86_400_000)
@@ -47,12 +47,15 @@ function relativeDate(iso: string): string {
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 
-function MessageBubble({ msg, onCopy }: { msg: Message; onCopy: (text: string) => void }) {
+function MessageBubble({ msg, onCopy }: { msg: Message; onCopy: (t: string) => void }) {
   const isUser = msg.role === "user"
   return (
     <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
       <Avatar className="h-8 w-8 shrink-0 mt-0.5">
-        <AvatarFallback className={cn("text-[11px] font-semibold", isUser ? "bg-brand text-white" : "bg-muted text-muted-foreground")}>
+        <AvatarFallback className={cn(
+          "text-[11px] font-semibold",
+          isUser ? "bg-brand text-white" : "bg-muted text-muted-foreground",
+        )}>
           {isUser ? "Vos" : "IA"}
         </AvatarFallback>
       </Avatar>
@@ -60,7 +63,7 @@ function MessageBubble({ msg, onCopy }: { msg: Message; onCopy: (text: string) =
         "group relative max-w-[80%] rounded-2xl px-4 py-3",
         isUser
           ? "bg-brand text-white rounded-tr-sm"
-          : "bg-muted text-foreground rounded-tl-sm"
+          : "bg-muted text-foreground rounded-tl-sm",
       )}>
         {isUser
           ? <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -82,10 +85,7 @@ function MessageBubble({ msg, onCopy }: { msg: Message; onCopy: (text: string) =
 // ── Conversation list item ────────────────────────────────────────────────────
 
 function ConversationItem({
-  conv,
-  active,
-  onClick,
-  onDelete,
+  conv, active, onClick, onDelete,
 }: {
   conv: Conversation
   active: boolean
@@ -99,13 +99,16 @@ function ConversationItem({
         "group w-full flex items-start gap-2 rounded-lg px-3 py-2.5 text-left transition-colors",
         active
           ? "bg-brand/10 text-brand"
-          : "hover:bg-muted/60 text-foreground/80 hover:text-foreground"
+          : "hover:bg-muted/60 text-foreground/80 hover:text-foreground",
       )}
     >
-      <MessageSquare className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", active ? "text-brand" : "text-muted-foreground")} />
+      <MessageSquare className={cn(
+        "h-3.5 w-3.5 mt-0.5 shrink-0",
+        active ? "text-brand" : "text-muted-foreground",
+      )} />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium truncate leading-snug">
-          {conv.title ?? "Conversación"}
+          {conv.title ?? "Conversacion"}
         </p>
         <p className="text-[10px] text-muted-foreground mt-0.5">
           {relativeDate(conv.updated_at)}
@@ -114,7 +117,7 @@ function ConversationItem({
       <button
         onClick={e => { e.stopPropagation(); onDelete() }}
         className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:text-destructive text-muted-foreground shrink-0 mt-0.5"
-        title="Eliminar conversación"
+        title="Eliminar conversacion"
       >
         <Trash2 className="h-3 w-3" />
       </button>
@@ -125,19 +128,28 @@ function ConversationItem({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AiPage() {
-  const [messages, setMessages]           = useState<Message[]>([])
-  const [input, setInput]                 = useState("")
-  const [streaming, setStreaming]         = useState(false)
+  const [messages, setMessages]             = useState<Message[]>([])
+  const [input, setInput]                   = useState("")
+  const [streaming, setStreaming]           = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen]     = useState(true)
+  const [sidebarOpen, setSidebarOpen]       = useState(true)
 
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const { used, limit, percentage, isLimitReached, isWarning, refresh: refreshCredits } = useAiCredits()
-  const { conversations, isLoading: loadingConvs, refresh: refreshConversations } = useConversations()
+  const {
+    used, limit, percentage,
+    isLimitReached, isWarning,
+    refresh: refreshCredits,
+  } = useAiCredits()
 
-  useEffect(() => { document.title = "IA Asistente — Omni" }, [])
+  const {
+    conversations,
+    isLoading: loadingConvs,
+    refresh:   refreshConversations,
+  } = useConversations()
+
+  useEffect(() => { document.title = "IA Asistente - Omni" }, [])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -147,11 +159,12 @@ export default function AiPage() {
     ta.style.height = Math.min(ta.scrollHeight, 160) + "px"
   }, [input])
 
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // ── Load a past conversation ────────────────────────────────────────────────
+  // ── Open past conversation ──────────────────────────────────────────────────
 
   async function openConversation(convId: string) {
     if (streaming) return
@@ -166,19 +179,19 @@ export default function AiPage() {
     setMessages(
       (data ?? [])
         .filter((m: any) => m.role !== "system")
-        .map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content }))
+        .map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
     )
     setInput("")
   }
 
-  // ── Delete a conversation ───────────────────────────────────────────────────
+  // ── Delete conversation ─────────────────────────────────────────────────────
 
   async function deleteConversation(convId: string) {
-    if (!confirm("¿Eliminar esta conversación? No se puede deshacer.")) return
+    if (!confirm("Eliminar esta conversacion? No se puede deshacer.")) return
     const sb = createClient() as any
     const { error } = await sb.from("ai_conversations").delete().eq("id", convId)
     if (error) {
-      toast.error("No se pudo eliminar la conversación")
+      toast.error("No se pudo eliminar la conversacion")
       return
     }
     refreshConversations()
@@ -201,38 +214,44 @@ export default function AiPage() {
 
   const send = useCallback(async (text?: string) => {
     const content = (text ?? input).trim()
-    if (!content || streaming) return
+    if (!content || streaming || isLimitReached) return
+
     setInput("")
 
-    const userMsg: Message = { role: "user", content }
-    const nextMessages = [...messages, userMsg]
+    const userMsg: Message       = { role: "user", content }
+    const nextMessages: Message[] = [...messages, userMsg]
     setMessages(nextMessages)
     setStreaming(true)
+    // Placeholder for assistant response
     setMessages(prev => [...prev, { role: "assistant", content: "" }])
 
     try {
       const res = await fetch("/api/ai/chat", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages, conversationId }),
+        body:    JSON.stringify({ messages: nextMessages, conversationId }),
       })
 
+      // Credits exceeded
       if (res.status === 429) {
         const body = await res.json().catch(() => ({}))
-        toast.error(body.message ?? "Límite de créditos de IA alcanzado")
+        toast.error(body.message ?? "Limite de creditos de IA alcanzado")
         setMessages(prev => prev.slice(0, -1))
+        refreshCredits()
         return
       }
+
       if (!res.ok) throw new Error("Error del servidor")
 
-      // Capture conversation ID from response header
+      // Capture conversation ID
       const returnedConvId = res.headers.get("X-Conversation-Id")
       if (returnedConvId) {
         setConversationId(returnedConvId)
         if (!conversationId) refreshConversations()
       }
 
-      const reader = res.body!.getReader()
+      // Stream chunks
+      const reader  = res.body!.getReader()
       const decoder = new TextDecoder()
       let accumulated = ""
 
@@ -248,8 +267,8 @@ export default function AiPage() {
         })
       }
 
+      // Sync credits + conversation sidebar
       refreshCredits()
-      // Refresh sidebar so the conversation moves to top
       refreshConversations()
     } catch {
       toast.error("No se pudo conectar con el asistente")
@@ -258,7 +277,7 @@ export default function AiPage() {
       setStreaming(false)
       setTimeout(() => textareaRef.current?.focus(), 100)
     }
-  }, [input, messages, streaming, conversationId, refreshCredits, refreshConversations])
+  }, [input, messages, streaming, conversationId, isLimitReached, refreshCredits, refreshConversations])
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -276,10 +295,10 @@ export default function AiPage() {
   return (
     <div className="flex gap-0 h-[calc(100vh-8rem)]">
 
-      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <div className={cn(
         "shrink-0 flex flex-col border-r border-border transition-all duration-200",
-        sidebarOpen ? "w-60" : "w-0 overflow-hidden"
+        sidebarOpen ? "w-60" : "w-0 overflow-hidden",
       )}>
         {/* Sidebar header */}
         <div className="flex items-center justify-between px-3 py-3 border-b border-border shrink-0">
@@ -287,17 +306,14 @@ export default function AiPage() {
             Historial
           </span>
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={newConversation}
-            title="Nueva conversación"
+            variant="ghost" size="icon" className="h-6 w-6"
+            onClick={newConversation} title="Nueva conversacion"
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
 
-        {/* Conversation list */}
+        {/* List */}
         <div className="flex-1 overflow-y-auto py-1.5 px-1.5 space-y-0.5">
           {loadingConvs ? (
             <div className="space-y-1.5 p-2">
@@ -307,7 +323,7 @@ export default function AiPage() {
             </div>
           ) : conversations.length === 0 ? (
             <p className="text-[11px] text-muted-foreground text-center py-6 px-3 leading-relaxed">
-              Tus conversaciones aparecerán acá
+              Tus conversaciones apareceran aca
             </p>
           ) : (
             conversations.map(conv => (
@@ -323,16 +339,14 @@ export default function AiPage() {
         </div>
       </div>
 
-      {/* ── Main chat ─────────────────────────────────────────────────────── */}
+      {/* ── Main chat ───────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 pl-6">
 
-        {/* Header */}
+        {/* Top bar */}
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground"
+              variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"
               onClick={() => setSidebarOpen(o => !o)}
               title={sidebarOpen ? "Ocultar historial" : "Ver historial"}
             >
@@ -341,8 +355,12 @@ export default function AiPage() {
             <PageHeader title="IA Asistente" description="Powered by Claude" />
           </div>
           {messages.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={newConversation} className="text-muted-foreground">
-              <RotateCcw className="h-4 w-4 mr-2" />Nueva conversación
+            <Button
+              variant="ghost" size="sm"
+              onClick={newConversation}
+              className="text-muted-foreground"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />Nueva conversacion
             </Button>
           )}
         </div>
@@ -350,20 +368,24 @@ export default function AiPage() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-6 pr-1">
           {messages.length === 0 ? (
+            /* Empty state */
             <div className="flex flex-col items-center justify-center h-full text-center gap-6">
               <div className="w-14 h-14 rounded-2xl bg-brand-soft flex items-center justify-center">
                 <Sparkles className="h-7 w-7 text-brand" />
               </div>
               <div>
-                <p className="text-base font-semibold">¿En qué te ayudo hoy?</p>
-                <p className="text-sm text-muted-foreground mt-1">Preguntame cualquier cosa sobre tu negocio</p>
+                <p className="text-base font-semibold">En que te ayudo hoy?</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Preguntame cualquier cosa sobre tu negocio
+                </p>
               </div>
               <div className="grid sm:grid-cols-2 gap-2 w-full max-w-2xl">
                 {SUGGESTIONS.map(s => (
                   <button
                     key={s}
                     onClick={() => send(s)}
-                    className="text-left text-xs p-3 rounded-xl border border-border hover:border-brand/40 hover:bg-brand-soft transition-all leading-relaxed"
+                    disabled={isLimitReached}
+                    className="text-left text-xs p-3 rounded-xl border border-border hover:border-brand/40 hover:bg-brand-soft transition-all leading-relaxed disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {s}
                   </button>
@@ -375,10 +397,13 @@ export default function AiPage() {
               {messages.map((msg, i) => (
                 <MessageBubble key={i} msg={msg} onCopy={copyToClipboard} />
               ))}
+              {/* Streaming indicator */}
               {streaming && messages[messages.length - 1]?.content === "" && (
                 <div className="flex gap-3">
                   <Avatar className="h-7 w-7 shrink-0">
-                    <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">IA</AvatarFallback>
+                    <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+                      IA
+                    </AvatarFallback>
                   </Avatar>
                   <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -394,12 +419,17 @@ export default function AiPage() {
         {isLimitReached ? (
           <div className="mt-3 flex items-center gap-2 p-3 rounded-xl border border-destructive/30 bg-destructive/5 text-destructive text-sm shrink-0">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>Límite de créditos de IA alcanzado. Contactá al admin para aumentarlo.</span>
+            <span>
+              Limite de creditos de IA alcanzado ({used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")}).
+              {" "}Contacta al admin para aumentarlo.
+            </span>
           </div>
         ) : isWarning ? (
-          <div className="mt-3 flex items-center gap-2 p-3 rounded-xl border border-warning/30 bg-warning/5 text-warning text-sm shrink-0">
+          <div className="mt-3 flex items-center gap-2 p-3 rounded-xl border border-amber-300/40 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 text-sm shrink-0">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>{used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} créditos usados ({percentage}%)</span>
+            <span>
+              {used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} creditos usados ({percentage}%)
+            </span>
           </div>
         ) : null}
 
@@ -411,7 +441,11 @@ export default function AiPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isLimitReached ? "Créditos agotados" : "Escribí tu pregunta… (Enter para enviar, Shift+Enter para nueva línea)"}
+              placeholder={
+                isLimitReached
+                  ? "Creditos agotados"
+                  : "Escribi tu pregunta... (Enter para enviar, Shift+Enter para nueva linea)"
+              }
               className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 min-h-[40px] max-h-40 text-sm p-1"
               rows={1}
               disabled={streaming || isLimitReached}
@@ -422,12 +456,15 @@ export default function AiPage() {
               size="icon"
               className="h-8 w-8 shrink-0 bg-brand hover:bg-brand-hover rounded-xl"
             >
-              {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {streaming
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Send className="h-4 w-4" />
+              }
             </Button>
           </div>
           {!isWarning && !isLimitReached && (
             <p className="text-[10px] text-muted-foreground/50 text-right">
-              {used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} créditos usados
+              {used.toLocaleString("es-AR")} / {limit.toLocaleString("es-AR")} creditos usados
             </p>
           )}
         </div>
