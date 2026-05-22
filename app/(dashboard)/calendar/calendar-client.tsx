@@ -370,7 +370,7 @@ function CalendlySetup({ onConnected }: { onConnected: (info: { name: string; em
           {[
             { n: 1, text: "Andá a calendly.com e iniciá sesión" },
             { n: 2, text: "Clickeá en tu avatar → Integraciones" },
-            { n: 3, text: "Buscá "API & Webhooks"" },
+            { n: 3, text: 'Buscá "API & Webhooks"' },
             { n: 4, text: "Generá o copiá tu Personal Access Token" },
           ].map(s => (
             <div key={s.n} className="flex items-start gap-3">
