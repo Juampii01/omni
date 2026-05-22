@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   maxStart.setMonth(maxStart.getMonth() + 6)
 
   const url = new URL(`${CALENDLY_BASE}/scheduled_events`)
-  url.searchParams.set("user", userUri)
+  url.searchParams.set("user", userUri!)
   url.searchParams.set("min_start_time", minStart.toISOString())
   url.searchParams.set("max_start_time", maxStart.toISOString())
   url.searchParams.set("status", "active")
