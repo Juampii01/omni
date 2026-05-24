@@ -55,6 +55,7 @@ const PRIORITY_DOT: Record<string, string> = {
 export default async function OverviewPage() {
   const user = await requireAuth()
   const supabase = await createClient()
+  const sb = supabase as any
 
   const [
     { data: rawSettings },
@@ -65,13 +66,13 @@ export default async function OverviewPage() {
     { data: announcements },
     { data: urgentTasks },
   ] = await Promise.all([
-    supabase.from("client_settings").select("business_name, ai_credits_used, ai_credits_limit").single(),
-    supabase.from("kpis").select("metric_value, period_month").eq("metric_name", "MRR").order("period_month", { ascending: false }).limit(2),
-    supabase.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("stage", "won"),
-    supabase.from("leads").select("id, full_name, stage, amount, created_at").is("deleted_at", null).in("stage", ["new", "qualified", "meeting_scheduled", "meeting_done", "proposal_sent", "negotiation"]).order("amount", { ascending: false }).limit(6),
-    supabase.from("tasks").select("id", { count: "exact", head: true }).is("deleted_at", null).in("status", ["todo", "in_progress"]),
-    supabase.from("announcements").select("id, title, body, is_pinned, created_at").eq("is_pinned", true).order("created_at", { ascending: false }).limit(3),
-    supabase.from("tasks").select("id, title, priority, status, due_date").is("deleted_at", null).in("status", ["todo", "in_progress"]).in("priority", ["urgent", "high"]).order("priority", { ascending: true }).limit(5),
+    sb.from("client_settings").select("business_name, ai_credits_used, ai_credits_limit").single(),
+    sb.from("kpis").select("metric_value, period_month").eq("metric_name", "MRR").order("period_month", { ascending: false }).limit(2),
+    sb.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("stage", "won"),
+    sb.from("leads").select("id, full_name, stage, amount, created_at").is("deleted_at", null).in("stage", ["new", "qualified", "meeting_scheduled", "meeting_done", "proposal_sent", "negotiation"]).order("amount", { ascending: false }).limit(6),
+    sb.from("tasks").select("id", { count: "exact", head: true }).is("deleted_at", null).in("status", ["todo", "in_progress"]),
+    sb.from("announcements").select("id, title, body, is_pinned, created_at").eq("is_pinned", true).order("created_at", { ascending: false }).limit(3),
+    sb.from("tasks").select("id, title, priority, status, due_date").is("deleted_at", null).in("status", ["todo", "in_progress"]).in("priority", ["urgent", "high"]).order("priority", { ascending: true }).limit(5),
   ])
 
   const settings = rawSettings as { business_name: string; ai_credits_used: number; ai_credits_limit: number } | null
@@ -83,7 +84,7 @@ export default async function OverviewPage() {
   const mrrGrowth = prevMrr > 0 ? Math.round(((mrr - prevMrr) / prevMrr) * 100) : null
 
   // Pipeline
-  const pipelineValue = (pipelineLeads ?? []).reduce((acc, l) => acc + (Number(l.amount) || 0), 0)
+  const pipelineValue = (pipelineLeads ?? []).reduce((acc: number, l: any) => acc + (Number(l.amount) || 0), 0)
   const pipelineCount = pipelineLeads?.length ?? 0
 
   // Greeting
@@ -193,7 +194,7 @@ export default async function OverviewPage() {
       {/* ── Announcements strip ───────────────────────────────────── */}
       {(announcements ?? []).length > 0 && (
         <div className="space-y-2">
-          {(announcements ?? []).map((ann) => (
+          {(announcements ?? []).map((ann: any) => (
             <div
               key={ann.id}
               className={cn(
@@ -241,7 +242,7 @@ export default async function OverviewPage() {
                 <p className="text-sm text-muted-foreground">Sin tareas urgentes</p>
               </div>
             ) : (
-              (urgentTasks ?? []).map((task) => (
+              (urgentTasks ?? []).map((task: any) => (
                 <Link key={task.id} href="/tasks" className="flex items-start gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors group">
                   <span className={cn("mt-1.5 w-2 h-2 rounded-full flex-shrink-0", PRIORITY_DOT[task.priority] ?? "bg-muted-foreground")} />
                   <div className="min-w-0 flex-1">
@@ -289,7 +290,7 @@ export default async function OverviewPage() {
                 </Link>
               </div>
             ) : (
-              (pipelineLeads ?? []).map((lead) => (
+              (pipelineLeads ?? []).map((lead: any) => (
                 <Link
                   key={lead.id}
                   href={`/crm/${lead.id}`}
