@@ -135,13 +135,15 @@ end $$;
 -- ─── Tasks de ejemplo ────────────────────────────────────────
 do $$ begin
   if not exists (select 1 from public.tasks where title = 'Preparar secuencia de emails lanzamiento mayo') then
-    insert into public.tasks (title, description, status, priority, due_date)
-    values
+    insert into public.tasks (title, description, status, priority, due_date, created_by)
+    select title, description, status, priority, due_date, (select id from public.profiles limit 1)
+    from (values
       ('Preparar secuencia de emails lanzamiento mayo',  'Escribir 7 emails de la secuencia de lanzamiento con IA',          'todo',        'urgent', current_date + interval '4 days'),
       ('Grabar video de ventas programa mentoria',        'VSL de 20 min para landing del lanzamiento',                        'in_progress', 'high',   current_date + interval '7 days'),
       ('Subir contenido semanal Instagram',               '3 reels + 2 carruseles programados para la semana',                 'todo',        'medium', current_date + interval '2 days'),
       ('Renovar contrato Rodrigo Castillo',               'Llamada de check-in y presentar propuesta de continuidad',          'todo',        'high',   current_date + interval '10 days'),
       ('Informe mensual clientes VIP',                    'Enviar reportes de resultados a Martina y Camila',                  'todo',        'medium', current_date + interval '5 days'),
-      ('Configurar webhook Instagram en Meta',            'Finalizar configuración de webhooks para el dashboard de contenido', 'todo',        'low',    current_date + interval '14 days');
+      ('Configurar webhook Instagram en Meta',            'Finalizar configuración de webhooks para el dashboard de contenido', 'todo',        'low',    current_date + interval '14 days')
+    ) as t(title, description, status, priority, due_date);
   end if;
 end $$;
