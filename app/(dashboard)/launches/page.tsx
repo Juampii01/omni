@@ -1,15 +1,27 @@
-import { ComingSoon } from "@/components/placeholder/coming-soon"
-import { Rocket } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
+import { requireAuth } from "@/lib/auth/get-user"
+import { LaunchesClient } from "./launches-client"
 
 export const metadata = { title: "Lanzamientos" }
+export const dynamic = "force-dynamic"
 
-export default function LaunchesPage() {
+export default async function LaunchesPage() {
+  await requireAuth()
+  const supabase = await createClient()
+  const sb = supabase as any
+
+  const [{ data: launches }, { data: participants }] = await Promise.all([
+    sb.from("launches")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    sb.from("launch_participants")
+      .select("id, launch_id, full_name, email, paid, amount_paid, registered_at"),
+  ])
+
   return (
-    <ComingSoon
-      icon={Rocket}
-      title="Lanzamientos"
-      description="Portal de lanzamiento con setup por días, lista de participantes, cupones automáticos y stream link de YouTube Live."
-      badge="En construcción — Fase 2"
+    <LaunchesClient
+      initialLaunches={(launches as any[]) ?? []}
+      initialParticipants={(participants as any[]) ?? []}
     />
   )
 }

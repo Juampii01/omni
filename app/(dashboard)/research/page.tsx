@@ -1,15 +1,19 @@
-import { ComingSoon } from "@/components/placeholder/coming-soon"
-import { BrainCircuit } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
+import { requireAuth } from "@/lib/auth/get-user"
+import { ResearchClient } from "./research-client"
 
 export const metadata = { title: "Inteligencia" }
+export const dynamic = "force-dynamic"
 
-export default function ResearchPage() {
-  return (
-    <ComingSoon
-      icon={BrainCircuit}
-      title="Inteligencia del Negocio"
-      description="Investigación de competidores, AI Diagnosis, insights estratégicos y análisis versionados del negocio. Próximamente en Fase 2."
-      badge="En construcción — Fase 2"
-    />
-  )
+export default async function ResearchPage() {
+  await requireAuth()
+  const supabase = await createClient()
+
+  const { data: requests } = await (supabase as any)
+    .from("research_requests")
+    .select("id, title, prompt, status, result_markdown, tokens_used, created_at, completed_at")
+    .order("created_at", { ascending: false })
+    .limit(30)
+
+  return <ResearchClient initialRequests={(requests as any[]) ?? []} />
 }
