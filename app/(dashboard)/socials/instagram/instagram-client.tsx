@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import {
   Instagram, Plus, Calendar, Clock, CheckCircle2, XCircle,
   Loader2, Image, Film, Layers, Trash2, ExternalLink, Users,
-  TrendingUp, Eye, Heart,
+  TrendingUp, Eye, Heart, MessageCircle, Send, ArrowLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format, formatDistanceToNow, isPast } from "date-fns"
@@ -61,6 +61,31 @@ type IGMedia = {
   like_count?: number
   comments_count?: number
   reach?: number
+}
+
+type Conversation = {
+  id: string
+  account_id: string
+  ig_conversation_id: string
+  participant_ig_id?: string
+  participant_username?: string
+  participant_name?: string
+  participant_avatar_url?: string
+  last_message_at?: string
+  last_message_preview?: string
+  unread_count: number
+  is_archived: boolean
+}
+
+type IGMessage = {
+  id: string
+  conversation_id: string
+  ig_message_id: string
+  direction: "inbound" | "outbound"
+  message_type: string
+  content?: string
+  sent_by_me: boolean
+  received_at: string
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -366,21 +391,214 @@ function NoAccountState() {
   )
 }
 
+// ── DMs Inbox ─────────────────────────────────────────────────────────────────
+
+function DMsInbox({ conversations, accountId }: { conversations: Conversation[]; accountId: string }) {
+  const [selected, setSelected] = useState<Conversation | null>(null)
+  const [messages, setMessages] = useState<IGMessage[]>([])
+  const [loadingMsgs, setLoadingMsgs] = useState(false)
+  const [reply, setReply] = useState("")
+  const [sending, setSending] = useState(false)
+
+  async function openConversation(conv: Conversation) {
+    setSelected(conv)
+    setLoadingMsgs(true)
+    const sb = createClient() as any
+    const { data } = await sb
+      .from("instagram_messages")
+      .select("*")
+      .eq("conversation_id", conv.id)
+      .order("received_at", { ascending: true })
+      .limit(50)
+    setMessages((data as IGMessage[]) ?? [])
+    setLoadingMsgs(false)
+  }
+
+  async function handleSend() {
+    if (!reply.trim() || !selected) return
+    setSending(true)
+    // In a real implementation, this would call POST /api/instagram/messages
+    // For now, we just add an optimistic message to the UI
+    const optimistic: IGMessage = {
+      id:              crypto.randomUUID(),
+      conversation_id: selected.id,
+      ig_message_id:   "local-" + Date.now(),
+      direction:       "outbound",
+      message_type:    "text",
+      content:         reply,
+      sent_by_me:      true,
+      received_at:     new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, optimistic])
+    setReply("")
+    setSending(false)
+    toast.info("Mensaje guardado localmente — conectá IG para enviar reales")
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-10 text-center">
+        <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-3">
+          <MessageCircle className="h-5 w-5 text-brand" />
+        </div>
+        <p className="text-sm font-medium">Sin DMs sincronizados</p>
+        <p className="text-xs text-muted-foreground mt-1">Los mensajes se sincronizan via webhooks de Instagram.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-4 h-[520px]">
+      {/* Conversation list */}
+      <div className="w-72 flex-shrink-0 overflow-y-auto rounded-xl border border-border bg-card divide-y divide-border">
+        {conversations.map(conv => (
+          <button
+            key={conv.id}
+            onClick={() => openConversation(conv)}
+            className={cn(
+              "w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex items-start gap-3",
+              selected?.id === conv.id && "bg-muted"
+            )}
+          >
+            <Avatar className="h-9 w-9 flex-shrink-0">
+              <AvatarImage src={conv.participant_avatar_url ?? undefined} />
+              <AvatarFallback className="text-xs bg-brand/10 text-brand">
+                {(conv.participant_username ?? conv.participant_name ?? "?")[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium truncate">
+                  {conv.participant_name ?? conv.participant_username ?? "Usuario"}
+                </p>
+                {conv.unread_count > 0 && (
+                  <span className="ml-2 bg-brand text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    {conv.unread_count}
+                  </span>
+                )}
+              </div>
+              {conv.participant_username && (
+                <p className="text-[10px] text-muted-foreground">@{conv.participant_username}</p>
+              )}
+              {conv.last_message_preview && (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{conv.last_message_preview}</p>
+              )}
+              {conv.last_message_at && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true, locale: es })}
+                </p>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Message thread */}
+      <div className="flex-1 flex flex-col rounded-xl border border-border bg-card overflow-hidden">
+        {!selected ? (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Seleccioná una conversación</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Thread header */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+              <Button variant="ghost" size="icon" className="h-7 w-7 -ml-1" onClick={() => setSelected(null)}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={selected.participant_avatar_url ?? undefined} />
+                <AvatarFallback className="text-xs bg-brand/10 text-brand">
+                  {(selected.participant_username ?? "?")[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{selected.participant_name ?? selected.participant_username ?? "Usuario"}</p>
+                {selected.participant_username && (
+                  <p className="text-xs text-muted-foreground">@{selected.participant_username}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {loadingMsgs ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : messages.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center mt-10">Sin mensajes en esta conversación</p>
+              ) : (
+                messages.map(msg => (
+                  <div
+                    key={msg.id}
+                    className={cn("flex", msg.sent_by_me ? "justify-end" : "justify-start")}
+                  >
+                    <div className={cn(
+                      "max-w-xs rounded-2xl px-3 py-2 text-sm",
+                      msg.sent_by_me
+                        ? "bg-brand text-black rounded-br-sm"
+                        : "bg-muted text-foreground rounded-bl-sm"
+                    )}>
+                      <p className="leading-relaxed">{msg.content ?? "(adjunto)"}</p>
+                      <p className={cn("text-[10px] mt-0.5", msg.sent_by_me ? "text-black/60" : "text-muted-foreground")}>
+                        {format(new Date(msg.received_at), "HH:mm")}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Reply input */}
+            <div className="border-t border-border p-3 flex gap-2">
+              <Input
+                value={reply}
+                onChange={e => setReply(e.target.value)}
+                placeholder="Escribí un mensaje..."
+                className="flex-1 text-sm"
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
+              />
+              <Button
+                size="icon"
+                disabled={!reply.trim() || sending}
+                onClick={handleSend}
+                className="bg-brand hover:bg-brand/90 h-9 w-9"
+              >
+                {sending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />
+                }
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export function InstagramClient({
   accounts,
   queue: initialQueue,
   recentMedia,
+  conversations,
 }: {
   accounts: IGAccount[]
   queue: QueueItem[]
   recentMedia: IGMedia[]
+  conversations: Conversation[]
 }) {
   const [queue, setQueue] = useState<QueueItem[]>(initialQueue)
   const [composeOpen, setComposeOpen] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
   const hasAccount = accounts.length > 0
+  const totalUnread = conversations.reduce((s, c) => s + c.unread_count, 0)
 
   async function handleCancel() {
     if (!confirmCancel) return
@@ -461,6 +679,14 @@ export function InstagramClient({
               </TabsTrigger>
               <TabsTrigger value="published" className="text-xs">
                 Publicados ({recentMedia.length})
+              </TabsTrigger>
+              <TabsTrigger value="dms" className="text-xs">
+                DMs
+                {totalUnread > 0 && (
+                  <span className="ml-1.5 bg-brand text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {totalUnread}
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -576,6 +802,11 @@ export function InstagramClient({
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            {/* DMs tab */}
+            <TabsContent value="dms" className="mt-4">
+              <DMsInbox conversations={conversations} accountId={accounts[0]?.id ?? ""} />
             </TabsContent>
           </Tabs>
         </>
