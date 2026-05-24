@@ -39,7 +39,9 @@ export default async function DashboardRootLayout({
       {/* Inject dynamic theme vars — prevents FOUC */}
       <style dangerouslySetInnerHTML={{ __html: `:root { ${inlineCss} }` }} />
       <LastSeenUpdater userId={user.id} />
-      <DashboardLayout>{children}</DashboardLayout>
+      <DashboardLayout businessName={settings?.business_name}>
+        {children}
+      </DashboardLayout>
     </>
   )
 }

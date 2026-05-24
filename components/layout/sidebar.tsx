@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BarChart2, Users, GitBranch,
   CheckSquare, UserCog, FileText, Binoculars,
   Sparkles, ClipboardList, MessageSquare, Settings,
-  ChevronRight, Radio, TrendingUp, Plug, Smartphone,
+  Radio, TrendingUp, Plug, Smartphone,
   CalendarDays,
 } from "lucide-react"
 
@@ -102,20 +102,25 @@ function NavItem({ label, href, icon, onClick }: NavItemProps) {
     <Link href={href} onClick={onClick}>
       <div
         className={cn(
-          "flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-colors duration-150 group",
+          "group relative flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
           isActive
-            ? "bg-brand/8 text-foreground font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            ? "bg-brand/10 text-brand dark:bg-brand/15 dark:text-brand"
+            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-border/60 dark:hover:bg-white/5"
         )}
       >
+        {/* Active indicator */}
+        {isActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-brand rounded-r-full" />
+        )}
         <Icon
           className={cn(
             "h-4 w-4 flex-shrink-0 transition-colors",
-            isActive ? "text-brand" : "text-muted-foreground group-hover:text-foreground"
+            isActive
+              ? "text-brand"
+              : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70"
           )}
         />
         <span className="flex-1 truncate">{label}</span>
-        {isActive && <ChevronRight className="h-3 w-3 text-brand/50 ml-auto" />}
       </div>
     </Link>
   )
@@ -123,24 +128,38 @@ function NavItem({ label, href, icon, onClick }: NavItemProps) {
 
 interface SidebarProps {
   onClose?: () => void
+  businessName?: string
 }
 
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({ onClose, businessName }: SidebarProps) {
+  const name = businessName ?? "KAVAR"
+  const initial = name.charAt(0).toUpperCase()
+
   return (
     <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-4 h-14 border-b border-border flex-shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
-          <span className="text-xs font-bold text-brand-foreground">O</span>
+      {/* Logo / Brand header */}
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border flex-shrink-0">
+        {/* Brand mark */}
+        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center flex-shrink-0 shadow-sm">
+          <span className="text-[11px] font-black text-brand-foreground tracking-tight">
+            {initial}
+          </span>
         </div>
-        <span className="font-semibold text-sm text-foreground">Omni</span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-bold text-sidebar-foreground tracking-tight leading-none truncate">
+            {name}
+          </p>
+          <p className="text-[10px] text-sidebar-foreground/40 mt-0.5 leading-none">
+            Omni OS
+          </p>
+        </div>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-5">
         {NAV.map(({ section, items }) => (
           <div key={section}>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/30 px-3 mb-1.5">
               {section}
             </p>
             <div className="space-y-0.5">
@@ -153,7 +172,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Settings footer */}
-      <div className="border-t border-border px-2 py-3">
+      <div className="border-t border-sidebar-border px-2 py-3">
         <NavItem label="Configuración" href="/settings" icon="settings" onClick={onClose} />
       </div>
     </div>

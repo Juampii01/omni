@@ -3,30 +3,35 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Design System — Omni by Nova Softwares ─────────────────────────────── */
+/* ── Design System — Omni by KAVAR ──────────────────────────────────────── */
 :root {
-  /* Brand */
-  --brand:              163 47% 28%;   /* #236461 — verde polo */
+  /* Brand — Kavar Green */
+  --brand:              163 47% 28%;   /* #236461 */
   --brand-foreground:   0 0% 100%;
   --brand-soft:         163 33% 94%;   /* #ebf2f1 */
   --brand-hover:        163 47% 20%;   /* #1a4d4a */
 
   /* Base */
   --background:         0 0% 100%;
-  --foreground:         0 0% 4%;       /* #0a0a0a */
+  --foreground:         224 15% 8%;    /* #0f1117 */
   --card:               0 0% 100%;
-  --card-foreground:    0 0% 4%;
+  --card-foreground:    224 15% 8%;
   --popover:            0 0% 100%;
-  --popover-foreground: 0 0% 4%;
+  --popover-foreground: 224 15% 8%;
+
+  /* Sidebar */
+  --sidebar:            210 20% 98%;   /* #f8fafc — barely off-white */
+  --sidebar-foreground: 224 15% 8%;
+  --sidebar-border:     220 13% 91%;   /* subtle divider */
 
   /* Grays */
-  --muted:              220 9% 97%;    /* #f8f9fa */
-  --muted-foreground:   220 9% 46%;    /* #6b7280 */
-  --secondary:          220 9% 96%;    /* #f3f4f6 */
+  --muted:              220 12% 97%;
+  --muted-foreground:   220 9% 44%;
+  --secondary:          220 12% 96%;
   --secondary-foreground: 220 13% 12%;
 
   /* Borders & inputs */
-  --border:             220 9% 90%;    /* #e5e7eb */
+  --border:             220 9% 90%;
   --input:              220 9% 90%;
   --ring:               163 47% 28%;
 
@@ -39,54 +44,62 @@
   --accent-foreground:  220 13% 12%;
 
   /* Alerts */
-  --destructive:        0 72% 51%;     /* #dc2626 */
+  --destructive:        0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --warning:            38 92% 50%;    /* #f59e0b */
-  --success:            158 64% 32%;   /* #059669 */
-  --info:               221 83% 53%;   /* #2563eb */
+  --warning:            38 92% 50%;
+  --success:            158 64% 32%;
+  --info:               221 83% 53%;
 
   /* Radius */
   --radius: 0.5rem;
 }
 
-/* ── Dark mode ───────────────────────────────────────────────────────────── */
+/* ── Dark mode — Ultra-premium deep dark ─────────────────────────────────── */
 .dark {
-  /* Brand (slightly lighter on dark bg) */
-  --brand:              163 47% 45%;
+  /* Brand — brighter on dark so it pops */
+  --brand:              163 52% 50%;   /* #3db5a5 */
   --brand-foreground:   0 0% 100%;
-  --brand-soft:         163 33% 14%;
-  --brand-hover:        163 47% 52%;
+  --brand-soft:         163 40% 10%;   /* subtle green tint bg */
+  --brand-hover:        163 52% 60%;
 
-  /* Base */
-  --background:         220 13% 9%;
-  --foreground:         220 9% 96%;
-  --card:               220 13% 12%;
-  --card-foreground:    220 9% 96%;
-  --popover:            220 13% 13%;
-  --popover-foreground: 220 9% 96%;
+  /* Base — deep, almost-pure dark with blue-gray undertone */
+  --background:         224 22% 5%;    /* #090c14 */
+  --foreground:         210 16% 92%;   /* #e4e9f0 */
+  --card:               224 22% 8%;    /* #0e121c */
+  --card-foreground:    210 16% 92%;
+  --popover:            224 22% 10%;   /* #121620 */
+  --popover-foreground: 210 16% 92%;
+
+  /* Sidebar — slightly darker than card, distinct from main */
+  --sidebar:            224 24% 4%;    /* #070a11 */
+  --sidebar-foreground: 210 14% 82%;   /* slightly muted */
+  --sidebar-border:     224 22% 12%;   /* faint */
 
   /* Grays */
-  --muted:              220 13% 16%;
-  --muted-foreground:   220 9% 58%;
-  --secondary:          220 13% 16%;
-  --secondary-foreground: 220 9% 92%;
+  --muted:              224 22% 12%;   /* #161c2a */
+  --muted-foreground:   215 14% 52%;   /* #7b889e */
+  --secondary:          224 22% 11%;
+  --secondary-foreground: 210 14% 85%;
 
   /* Borders & inputs */
-  --border:             220 13% 20%;
-  --input:              220 13% 20%;
-  --ring:               163 47% 45%;
+  --border:             224 20% 15%;   /* #1e2538 */
+  --input:              224 20% 15%;
+  --ring:               163 52% 50%;
 
   /* Primary (= brand) */
-  --primary:            163 47% 45%;
+  --primary:            163 52% 50%;
   --primary-foreground: 0 0% 100%;
 
   /* Accent */
-  --accent:             220 13% 16%;
-  --accent-foreground:  220 9% 92%;
+  --accent:             224 22% 13%;
+  --accent-foreground:  210 14% 85%;
 
-  /* Alerts — same as light */
-  --destructive:        0 72% 51%;
+  /* Alerts */
+  --destructive:        0 72% 58%;
   --destructive-foreground: 0 0% 100%;
+  --warning:            38 92% 55%;
+  --success:            158 64% 42%;
+  --info:               221 83% 63%;
 }
 
 /* ── Tailwind v4 theme mapping ──────────────────────────────────────────── */
@@ -101,6 +114,9 @@
   --color-card-foreground:      hsl(var(--card-foreground));
   --color-popover:              hsl(var(--popover));
   --color-popover-foreground:   hsl(var(--popover-foreground));
+  --color-sidebar:              hsl(var(--sidebar));
+  --color-sidebar-foreground:   hsl(var(--sidebar-foreground));
+  --color-sidebar-border:       hsl(var(--sidebar-border));
   --color-muted:                hsl(var(--muted));
   --color-muted-foreground:     hsl(var(--muted-foreground));
   --color-secondary:            hsl(var(--secondary));
@@ -142,4 +158,20 @@ body {
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+/* ── Premium scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
 }

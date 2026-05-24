@@ -10,25 +10,26 @@ import { AiChatWidget } from "@/components/ai-chat-widget"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
+  businessName?: string
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, businessName }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-56 border-r border-border bg-background flex-shrink-0">
-        <Sidebar />
+      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-sidebar-border bg-sidebar">
+        <Sidebar businessName={businessName} />
       </aside>
 
       {/* Mobile sidebar via Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-56">
+        <SheetContent side="left" className="p-0 w-64 bg-sidebar border-r border-sidebar-border">
           <SheetHeader className="sr-only">
             <SheetTitle>Menú de navegación</SheetTitle>
           </SheetHeader>
-          <Sidebar onClose={() => setMobileOpen(false)} />
+          <Sidebar businessName={businessName} onClose={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 
