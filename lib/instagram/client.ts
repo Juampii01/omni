@@ -149,3 +149,182 @@ export async function refreshLongLivedToken(token: string): Promise<{ access_tok
   if (!r.ok) throw new Error(`Token refresh failed: ${await r.text()}`)
   return r.json()
 }
+
+// ── Publishing ────────────────────────────────────────────────────────────────
+
+/** Step 1: Create a single image media container. Returns creation_id. */
+export async function createImageContainer(
+  igUserId: string,
+  token: string,
+  imageUrl: string,
+  caption?: string,
+  isCarouselItem = false,
+): Promise<string> {
+  const body: Record<string, string> = {
+    image_url:    imageUrl,
+    access_token: token,
+  }
+  if (caption && !isCarouselItem) body.caption = caption
+  if (isCarouselItem) body.is_carousel_item = "true"
+
+  const r = await fetch(`${GRAPH}/${igUserId}/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body:    new URLSearchParams(body),
+  })
+  if (!r.ok) throw new Error(`createImageContainer failed: ${await r.text()}`)
+  const data = await r.json()
+  return data.id as string
+}
+
+/** Step 1b: Create a REEL media container. Returns creation_id. */
+export async function createReelContainer(
+  igUserId: string,
+  token: string,
+  videoUrl: string,
+  caption?: string,
+  coverUrl?: string,
+): Promise<string> {
+  const body: Record<string, string> = {
+    media_type:   "REELS",
+    video_url:    videoUrl,
+    access_token: token,
+  }
+  if (caption)  body.caption   = caption
+  if (coverUrl) body.cover_url = coverUrl
+
+  const r = await fetch(`${GRAPH}/${igUserId}/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body:    new URLSearchParams(body),
+  })
+  if (!r.ok) throw new Error(`createReelContainer failed: ${await r.text()}`)
+  const data = await r.json()
+  return data.id as string
+}
+
+/** Step 1c: Create a CAROUSEL container from a list of item creation_ids. */
+export async function createCarouselContainer(
+  igUserId: string,
+  token: string,
+  itemIds: string[],
+  caption?: string,
+): Promise<string> {
+  const body: Record<string, string> = {
+    media_type:   "CAROUSEL",
+    children:     itemIds.join(","),
+    access_token: token,
+  }
+  if (caption) body.caption = caption
+
+  const r = await fetch(`${GRAPH}/${igUserId}/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body:    new URLSearchParams(body),
+  })
+  if (!r.ok) throw new Error(`createCarouselContainer failed: ${await r.text()}`)
+  const data = await r.json()
+  return data.id as string
+}
+
+/** Step 2: Publish a media container. Returns the IG media ID. */
+export async function publishContainer(
+  igUserId: string,
+  token: string,
+  creationId: string,
+): Promise<string> {
+  const body = new URLSearchParams({
+    creation_id:  creationId,
+    access_token: token,
+  })
+
+  const r = await fetch(`${GRAPH}/${igUserId}/media_publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  })
+  if (!r.ok) throw new Error(`publishContainer failed: ${await r.text()}`)
+  const data = await r.json()
+  return data.id as string
+}
+
+/** Check container status (for async video processing). */
+export async function getContainerStatus(
+  containerId: string,
+  token: string,
+): Promise<{ status_code: "EXPIRED" | "ERROR" | "FINISHED" | "IN_PROGRESS" | "PUBLISHED"; error_message?: string }> {
+  const url = new URL(`${GRAPH}/${containerId}`)
+  url.searchParams.set("fields", "status_code,status")
+  url.searchParams.set("access_token", token)
+
+  const r = await fetch(url.toString())
+  if (!r.ok) throw new Error(`getContainerStatus failed: ${await r.text()}`)
+  return r.json()
+}
+
+// ── DMs (Conversations) ───────────────────────────────────────────────────────
+
+/** Get list of conversations for an IG Business account. */
+export async function getConversations(
+  igUserId: string,
+  token: string,
+): Promise<Array<{
+  id: string
+  participants: { data: Array<{ id: string; username?: string; name?: string }> }
+  updated_time: string
+  message_count: number
+}>> {
+  const url = new URL(`${GRAPH}/${igUserId}/conversations`)
+  url.searchParams.set("platform", "instagram")
+  url.searchParams.set("fields", "id,participants,updated_time,message_count")
+  url.searchParams.set("access_token", token)
+
+  const r = await fetch(url.toString(), { next: { revalidate: 0 } })
+  if (!r.ok) return []
+  const data = await r.json()
+  return data.data ?? []
+}
+
+/** Get messages in a conversation. */
+export async function getMessages(
+  conversationId: string,
+  token: string,
+  limit = 25,
+): Promise<Array<{
+  id: string
+  message: string
+  from: { id: string; username?: string }
+  created_time: string
+  attachments?: { data: Array<{ type: string; url?: string }> }
+}>> {
+  const url = new URL(`${GRAPH}/${conversationId}/messages`)
+  url.searchParams.set("fields", "id,message,from,created_time,attachments")
+  url.searchParams.set("limit", String(limit))
+  url.searchParams.set("access_token", token)
+
+  const r = await fetch(url.toString(), { next: { revalidate: 0 } })
+  if (!r.ok) return []
+  const data = await r.json()
+  return data.data ?? []
+}
+
+/** Send a message to an existing conversation. */
+export async function sendMessage(
+  igUserId: string,
+  token: string,
+  recipientId: string,
+  message: string,
+): Promise<string> {
+  const r = await fetch(`${GRAPH}/${igUserId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recipient: { id: recipientId },
+      message: { text: message },
+      access_token: token,
+    }),
+  })
+  if (!r.ok) throw new Error(`sendMessage failed: ${await r.text()}`)
+  const data = await r.json()
+  return data.message_id as string
+}

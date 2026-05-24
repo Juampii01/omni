@@ -1,15 +1,29 @@
-import { ComingSoon } from "@/components/placeholder/coming-soon"
-import { Zap } from "lucide-react"
+import { requireAuth } from "@/lib/auth/get-user"
+import { createClient } from "@/lib/supabase/server"
+import { AutomationsClient } from "./automations-client"
 
 export const metadata = { title: "Automatizaciones" }
+export const dynamic = "force-dynamic"
 
-export default function AutomationsPage() {
+export default async function AutomationsPage() {
+  await requireAuth()
+  const supabase = await createClient()
+  const sb = supabase as any
+
+  const [{ data: automations }, { data: executions }] = await Promise.all([
+    sb.from("automations")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    sb.from("automation_executions")
+      .select("*")
+      .order("started_at", { ascending: false })
+      .limit(50),
+  ])
+
   return (
-    <ComingSoon
-      icon={Zap}
-      title="Automatizaciones"
-      description="Workflows activos, webhooks, cron jobs, conexiones a Zapier/n8n/Make, AI workflows con prompts guardados y logs de ejecución."
-      badge="En construcción — Fase 2"
+    <AutomationsClient
+      initialAutomations={(automations as any[]) ?? []}
+      recentExecutions={(executions as any[]) ?? []}
     />
   )
 }

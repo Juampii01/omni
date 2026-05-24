@@ -1,15 +1,35 @@
-import { ComingSoon } from "@/components/placeholder/coming-soon"
-import { Instagram } from "lucide-react"
+import { requireAuth } from "@/lib/auth/get-user"
+import { createClient } from "@/lib/supabase/server"
+import { InstagramClient } from "./instagram-client"
 
 export const metadata = { title: "Instagram" }
+export const dynamic = "force-dynamic"
 
-export default function InstagramPage() {
+export default async function InstagramPage() {
+  await requireAuth()
+  const supabase = await createClient()
+  const sb = supabase as any
+
+  const [{ data: accounts }, { data: queue }, { data: media }] = await Promise.all([
+    sb.from("instagram_accounts")
+      .select("id, username, profile_picture_url, followers_count, ig_user_id, token_expires_at")
+      .limit(5),
+    sb.from("instagram_publish_queue")
+      .select("*")
+      .not("status", "eq", "published")
+      .order("scheduled_for", { ascending: true })
+      .limit(50),
+    sb.from("instagram_media")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(12),
+  ])
+
   return (
-    <ComingSoon
-      icon={Instagram}
-      title="Integración con Instagram"
-      description="Métricas reales de tus posts, stories y DMs directamente desde Instagram. Reach, impresiones, seguidores y engagement en tiempo real."
-      availableIn="Septiembre 2026"
+    <InstagramClient
+      accounts={(accounts as any[]) ?? []}
+      queue={(queue as any[]) ?? []}
+      recentMedia={(media as any[]) ?? []}
     />
   )
 }
