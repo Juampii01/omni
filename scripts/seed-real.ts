@@ -733,7 +733,7 @@ Infraestructura (free tiers):
   // ── 12. Automations activas ───────────────────────────────────────────────
   console.log("\n🤖 Cargando automaciones activas...")
 
-  const automations = [
+  const automations: any[] = [
     {
       name: "Refresh Instagram Token",
       description: "Refresca el long-lived token de IG antes de que expire (cada día a las 3am UTC).",
