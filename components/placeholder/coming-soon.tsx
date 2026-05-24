@@ -6,6 +6,7 @@ interface ComingSoonProps {
   title: string
   description: string
   badge?: string
+  availableIn?: string
 }
 
 export function ComingSoon({ icon: Icon, title, description, badge }: ComingSoonProps) {
