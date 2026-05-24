@@ -3,110 +3,105 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Design System — Omni by KAVAR ──────────────────────────────────────── */
+/* ── Design System — Omni ────────────────────────────────────────────────── */
+/* Dark-only application. All variables are dark values.                      */
+
 :root {
-  /* Brand — Kavar Green */
-  --brand:              163 47% 28%;   /* #236461 */
-  --brand-foreground:   0 0% 100%;
-  --brand-soft:         163 33% 94%;   /* #ebf2f1 */
-  --brand-hover:        163 47% 20%;   /* #1a4d4a */
+  /* ── Brand — Verde Lima ─────────────────────── */
+  --brand:              142 71% 45%;   /* #22c55e */
+  --brand-foreground:   0 0% 4%;      /* near-black text on green */
+  --brand-soft:         142 71% 45% / 0.1;
+  --brand-hover:        142 72% 36%;  /* #16a34a — hover darker */
 
-  /* Base */
-  --background:         0 0% 100%;
-  --foreground:         224 15% 8%;    /* #0f1117 */
-  --card:               0 0% 100%;
-  --card-foreground:    224 15% 8%;
-  --popover:            0 0% 100%;
-  --popover-foreground: 224 15% 8%;
+  /* ── Backgrounds ────────────────────────────── */
+  --background:         0 0% 3%;      /* #080808 — almost black */
+  --foreground:         0 0% 100%;    /* #ffffff */
+  --card:               0 0% 7%;      /* #111111 */
+  --card-foreground:    0 0% 100%;
+  --popover:            0 0% 10%;     /* #1a1a1a */
+  --popover-foreground: 0 0% 100%;
 
-  /* Sidebar */
-  --sidebar:            210 20% 98%;   /* #f8fafc — barely off-white */
-  --sidebar-foreground: 224 15% 8%;
-  --sidebar-border:     220 13% 91%;   /* subtle divider */
+  /* ── Sidebar ────────────────────────────────── */
+  --sidebar:            0 0% 7%;      /* #111111 — slightly elevated from bg */
+  --sidebar-foreground: 0 0% 90%;
+  --sidebar-border:     0 0% 16%;     /* #2a2a2a */
 
-  /* Grays */
-  --muted:              220 12% 97%;
-  --muted-foreground:   220 9% 44%;
-  --secondary:          220 12% 96%;
-  --secondary-foreground: 220 13% 12%;
+  /* ── Gray scale ─────────────────────────────── */
+  --muted:              0 0% 10%;     /* #1a1a1a */
+  --muted-foreground:   240 4% 65%;   /* #a1a1aa */
+  --secondary:          0 0% 10%;     /* #1a1a1a */
+  --secondary-foreground: 0 0% 100%;
+  --tertiary:           220 9% 42%;   /* #6b7280 */
 
-  /* Borders & inputs */
-  --border:             220 9% 90%;
-  --input:              220 9% 90%;
-  --ring:               163 47% 28%;
+  /* ── Borders & inputs ───────────────────────── */
+  --border:             0 0% 16%;     /* #2a2a2a */
+  --input:              0 0% 10%;     /* #1a1a1a */
+  --ring:               142 71% 45%; /* same as brand */
 
-  /* Primary (= brand) */
-  --primary:            163 47% 28%;
-  --primary-foreground: 0 0% 100%;
+  /* ── Primary (= brand green) ────────────────── */
+  --primary:            142 71% 45%;
+  --primary-foreground: 0 0% 4%;
 
-  /* Accent */
-  --accent:             220 9% 96%;
-  --accent-foreground:  220 13% 12%;
+  /* ── Accent ─────────────────────────────────── */
+  --accent:             0 0% 10%;
+  --accent-foreground:  0 0% 100%;
 
-  /* Alerts */
-  --destructive:        0 72% 51%;
+  /* ── Semantic ───────────────────────────────── */
+  --destructive:        0 84% 60%;    /* #ef4444 */
   --destructive-foreground: 0 0% 100%;
-  --warning:            38 92% 50%;
-  --success:            158 64% 32%;
-  --info:               221 83% 53%;
+  --warning:            38 92% 50%;   /* #f59e0b */
+  --success:            142 71% 45%;  /* same green */
+  --info:               217 91% 60%;  /* #3b82f6 */
 
-  /* Radius */
+  /* ── Radius ─────────────────────────────────── */
   --radius: 0.5rem;
 }
 
-/* ── Dark mode — Ultra-premium deep dark ─────────────────────────────────── */
+/* Dark class always applied (forcedTheme="dark") — same values */
 .dark {
-  /* Brand — brighter on dark so it pops */
-  --brand:              163 52% 50%;   /* #3db5a5 */
-  --brand-foreground:   0 0% 100%;
-  --brand-soft:         163 40% 10%;   /* subtle green tint bg */
-  --brand-hover:        163 52% 60%;
+  --brand:              142 71% 45%;
+  --brand-foreground:   0 0% 4%;
+  --brand-soft:         142 71% 45% / 0.1;
+  --brand-hover:        142 72% 36%;
 
-  /* Base — deep, almost-pure dark with blue-gray undertone */
-  --background:         224 22% 5%;    /* #090c14 */
-  --foreground:         210 16% 92%;   /* #e4e9f0 */
-  --card:               224 22% 8%;    /* #0e121c */
-  --card-foreground:    210 16% 92%;
-  --popover:            224 22% 10%;   /* #121620 */
-  --popover-foreground: 210 16% 92%;
+  --background:         0 0% 3%;
+  --foreground:         0 0% 100%;
+  --card:               0 0% 7%;
+  --card-foreground:    0 0% 100%;
+  --popover:            0 0% 10%;
+  --popover-foreground: 0 0% 100%;
 
-  /* Sidebar — slightly darker than card, distinct from main */
-  --sidebar:            224 24% 4%;    /* #070a11 */
-  --sidebar-foreground: 210 14% 82%;   /* slightly muted */
-  --sidebar-border:     224 22% 12%;   /* faint */
+  --sidebar:            0 0% 7%;
+  --sidebar-foreground: 0 0% 90%;
+  --sidebar-border:     0 0% 16%;
 
-  /* Grays */
-  --muted:              224 22% 12%;   /* #161c2a */
-  --muted-foreground:   215 14% 52%;   /* #7b889e */
-  --secondary:          224 22% 11%;
-  --secondary-foreground: 210 14% 85%;
+  --muted:              0 0% 10%;
+  --muted-foreground:   240 4% 65%;
+  --secondary:          0 0% 10%;
+  --secondary-foreground: 0 0% 100%;
 
-  /* Borders & inputs */
-  --border:             224 20% 15%;   /* #1e2538 */
-  --input:              224 20% 15%;
-  --ring:               163 52% 50%;
+  --border:             0 0% 16%;
+  --input:              0 0% 10%;
+  --ring:               142 71% 45%;
 
-  /* Primary (= brand) */
-  --primary:            163 52% 50%;
-  --primary-foreground: 0 0% 100%;
+  --primary:            142 71% 45%;
+  --primary-foreground: 0 0% 4%;
 
-  /* Accent */
-  --accent:             224 22% 13%;
-  --accent-foreground:  210 14% 85%;
+  --accent:             0 0% 10%;
+  --accent-foreground:  0 0% 100%;
 
-  /* Alerts */
-  --destructive:        0 72% 58%;
+  --destructive:        0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --warning:            38 92% 55%;
-  --success:            158 64% 42%;
-  --info:               221 83% 63%;
+  --warning:            38 92% 50%;
+  --success:            142 71% 45%;
+  --info:               217 91% 60%;
 }
 
 /* ── Tailwind v4 theme mapping ──────────────────────────────────────────── */
 @theme inline {
   --color-brand:                hsl(var(--brand));
   --color-brand-foreground:     hsl(var(--brand-foreground));
-  --color-brand-soft:           hsl(var(--brand-soft));
+  --color-brand-soft:           hsl(142 71% 45% / 0.1);
   --color-brand-hover:          hsl(var(--brand-hover));
   --color-background:           hsl(var(--background));
   --color-foreground:           hsl(var(--foreground));
@@ -134,7 +129,12 @@
   --color-success:              hsl(var(--success));
   --color-info:                 hsl(var(--info));
 
-  --font-sans:  var(--font-inter);
+  /* Fonts */
+  --font-sans:   var(--font-inter), system-ui, sans-serif;
+  --font-serif:  Georgia, 'Times New Roman', serif;
+  --font-mono:   var(--font-jetbrains), 'Fira Code', monospace;
+
+  /* Radius */
   --radius-sm:  calc(var(--radius) - 4px);
   --radius-md:  calc(var(--radius) - 2px);
   --radius-lg:  var(--radius);
@@ -147,12 +147,23 @@
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  /* Georgia for body text per spec */
+  font-family: Georgia, 'Times New Roman', serif;
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* UI-chrome elements use Inter */
+input, button, select, textarea, kbd, label {
+  font-family: var(--font-sans);
 }
 
 :focus-visible {
@@ -160,18 +171,24 @@ body {
   outline-offset: 2px;
 }
 
-/* ── Premium scrollbar ───────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+/* ── Typography scale ────────────────────────────────────────────────────── */
+h1, h2, h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.02em;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Numbers and code use mono */
+.tabular-nums, code, pre, kbd {
+  font-family: var(--font-mono);
 }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(240 4% 40%);
 }

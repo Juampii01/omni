@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la ~/Desktop/KAVAR-OS-PDF/)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm exec *)",
+      "Bash(npx --yes next dev --port 3001)",
+      "Bash(node_modules/.bin/next dev *)",
+      "Bash(~/.nvm/bin/nvm)",
+      "Read(//Users/juanpabloacostacaminos/.nvm/versions/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(brew list *)",
+      "Bash(NODE_OPTIONS='--no-experimental-detect-module' pnpm run dev)",
+      "Bash(git -C /Users/juanpabloacostacaminos/Documents/Proyectos/3-servicio-premium/Omni diff --stat HEAD)",
+      "Bash(find /Users/juanpabloacostacaminos -maxdepth 5 -type d -name \"*three-sigma*\" -o -type d -name \"*omni-three*\" 2>/dev/null | head -10)",
+      "Bash(find /Users/juanpabloacostacaminos/Documents/Proyectos -maxdepth 3 -name \"package.json\" 2>/dev/null | xargs grep -l '\"omni-three-sigma\"\\\\|\"three-sigma\"' 2>/dev/null)",
+      "Bash(git -C /Users/juanpabloacostacaminos/Documents/Proyectos/3-servicio-premium/Omni remote -v)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('name',''\\)\\)\")",
+      "Bash(git -C /Users/juanpabloacostacaminos/Documents/Proyectos/3-servicio-premium/Omni add -A)",
+      "Bash(git -C /Users/juanpabloacostacaminos/Documents/Proyectos/3-servicio-premium/Omni status)"
+    ]
+  }
+}
