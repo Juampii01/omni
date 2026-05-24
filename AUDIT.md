@@ -1,7 +1,255 @@
-# AUDIT.md — Omni v0.9 → v1.0 Migration Plan
-**Fecha:** 24 mayo 2026  
-**Stack actual:** Next.js 16.2.6 · React 19 · Supabase · Anthropic · Tailwind v4  
-**Objetivo:** Aplicar el spec "omni-three-sigma" al repo actual.
+# AUDIT.md — Omni v1.0
+> Generado: 24 mayo 2026 | Auditor: Claude Code
+
+---
+
+## 1. ESTADO ACTUAL DEL REPO
+
+### Stack real (vs spec)
+| Item | Spec dice | Realidad | Acción |
+|---|---|---|---|
+| Next.js | "15" | **16.2.6** | ✅ Ok, ignorar el typo |
+| ORM | Prisma schema | **SQL puro + Supabase JS** | ⚠️ NO introducir Prisma |
+| TypeScript | strict, sin `any` | `sb = supabase as any` establecido | ⚠️ Mantener patrón |
+| Auth | Supabase Auth | ✅ Completo (roles, middleware, profiles) | — |
+| RLS | Habilitado en todas | ✅ Habilitado en todas las tablas | — |
+| Dark theme | #080808 + #22c55e | ✅ forcedTheme="dark" | — |
+| Encryption | AES-256-GCM | ✅ lib/crypto.ts funcional | — |
+
+---
+
+## 2. BASE DE DATOS — ESTADO REAL vs SPEC
+
+### Tablas existentes (confirmadas en producción hoy)
+```
+AUTENTICACIÓN     profiles, departments, integrations, audit_logs
+NEGOCIO           client_settings, clients (012), leads, lead_activities
+FINANZAS          revenue_records, expense_records, kpis
+CONTENIDO         content_pieces, competitors, competitor_snapshots, business_docs
+INSTAGRAM         instagram_accounts, instagram_media, instagram_media_insights,
+                  instagram_account_insights, instagram_comments, instagram_webhooks_log
+COMUNICACIÓN      channels, channel_members, messages, announcements
+IA                ai_conversations, ai_messages, research_requests, ai_diagnoses,
+                  client_strategies
+OPERACIONES       tasks, team_members
+LANZAMIENTOS      launches, launch_participants
+AUTOMATIZACIONES  automations, automation_executions
+DISCOVERY         discovery_forms, discovery_responses
+ADS               meta_ads_snapshots, manychat_snapshots
+```
+
+### Tablas FALTANTES (requieren migración 014)
+| Tabla | Para qué | Prioridad |
+|---|---|---|
+| `contacts` | Contactos múltiples por cliente (Ann, Cristián+Santo) | 🔴 CRÍTICA |
+| `instagram_publish_queue` | Publisher — programar posts | 🟡 Alta |
+| `instagram_conversations` | Inbox DMs | 🟡 Alta |
+| `instagram_messages` | Mensajes de DMs | 🟡 Alta |
+
+### Columnas FALTANTES en `clients`
+La tabla existe (migración 012) pero le faltan:
+- `health_score int default 80`
+- `slack_channel text`
+- `industry text`
+- `parent_client_id uuid references clients(id)`
+- `setup_paid numeric(10,2)`
+
+---
+
+## 3. RUTAS — QUÉ EXISTE vs QUÉ FALTA
+
+### ✅ Módulos con UI real implementada
+| Ruta | Estado | Notas |
+|---|---|---|
+| `/` | ✅ Dashboard funcional | Widgets con kpis, leads, tasks |
+| `/clients` | ✅ Lista + add/edit | Falta: health score, contacts, detail page |
+| `/crm` | ✅ Pipeline Kanban completo | — |
+| `/tasks` | ✅ Lista + Kanban + Calendar | — |
+| `/metrics` | ✅ Revenue + Expenses + KPIs | Recharts funcional |
+| `/research` | ✅ AI Research + historial | Streaming con Claude |
+| `/strategy` | ✅ CoachMap 7 outputs | Genera con Claude |
+| `/launches` | ✅ CRUD completo | Lista + participantes |
+| `/team` | ✅ UI básica | Sin datos reales |
+| `/settings/*` | ✅ Profile + branding + billing | — |
+| `/socials/instagram` | ✅ Connect + Analytics | Media grid, insights |
+
+### 🔴 Módulos que son `<ComingSoon>` placeholder
+| Ruta | Lo que necesita |
+|---|---|
+| `/automations` | UI completa con los 4 workflows activos |
+| `/ads`, `/ads/meta`, `/ads/google` | Placeholders visuales (sin API todavía) |
+| `/mobile` | Baja prioridad |
+
+### 🟡 Módulos parciales — necesitan trabajo significativo
+| Ruta | Qué falta |
+|---|---|
+| `/content` | **Carousel Studio: NO existe** — solo "carousel" como enum de formato. Hay que construirlo. |
+| `/socials/instagram` | **Publisher UI** (crear/programar posts) + **Inbox UI** (DMs + comments) |
+
+---
+
+## 4. INSTAGRAM — GAPS ESPECÍFICOS
+
+### ✅ Ya construido
+- OAuth flow completo (start → callback → long-lived token → AES-256-GCM encrypt)
+- Sync: profile, últimos 25 posts, media insights, 30 días account metrics
+- Webhook endpoint + procesamiento async
+- Cron diario (8am UTC)
+- UI: AccountHeader, MediaGrid, InsightsChart
+
+### ❌ Falta construir
+| Feature | Qué falta |
+|---|---|
+| **Publisher** | UI de crear/programar posts + `instagram_publish_queue` tabla + métodos en cliente |
+| **Inbox DMs** | `getConversations()`, `getMessages()`, `sendMessage()` en cliente + tablas + UI |
+| **Webhook subscriptions** | Script `scripts/subscribe-instagram-webhooks.ts` |
+
+---
+
+## 5. SEED DATA — PROBLEMA CRÍTICO
+
+### Estado actual en producción
+- ❌ Data FICTICIA: Martina Rodríguez, Santiago Méndez, Valentina Lagos, etc.
+- ❌ No hay ningún dato real de Juampi
+
+### Lo que el spec pide (data real)
+- Ann Sahakyan ($1,500 MRR) + contacto
+- GovBidder ($500 MRR) + Cristián + Santo
+- Vendly (interno pausado) + Spriovanni Indumentaria
+- ~20 tareas reales urgentes
+- 6 meses revenue real (Ann desde sept 2025, GovBidder desde ene 2026)
+- Expenses reales (~$196/mes)
+- 5 bases del negocio (misión, visión, ICP, oferta, stack)
+- Launch histórico GovBidder
+- 1 strategy para Ann
+
+**Plan:** `scripts/seed-real.ts` que limpia demo y carga data real.
+
+---
+
+## 6. CAROUSEL STUDIO
+
+**Hallazgo:** "carousel" existe solo como un `ContentFormat` enum (`"reel" | "post" | "carousel" | ...`) en `content-client.tsx`. **No hay ningún componente CarouselStudio.** El spec lo da por existente, pero en Omni hay que construirlo desde cero.
+
+**MVP para esta sesión:**
+- Editor de slides (texto + color de fondo + imagen)
+- Exportar slides como imágenes
+- Guardar borrador en `content_pieces`
+- Integrar con Publisher de IG (carousel post)
+
+---
+
+## 7. DECISIONES TÉCNICAS — PRINCIPIOS PARA ESTA SESIÓN
+
+### ❌ NO hacer
+- Introducir Prisma (rompe todo — el patrón SQL+supabase-js está establecido)
+- Cambiar el schema de `tasks` (tiene 21 filas reales + UI completa funcionando)
+- Renombrar tablas existentes
+- `any` en TypeScript nuevo (usar tipos explícitos donde sea posible)
+
+### ✅ SÍ hacer
+- Migración 014 para columnas faltantes en `clients` + 4 nuevas tablas
+- Script de seed separado (`npm run seed:real`)
+- Patrón Server Component → Client Component en páginas nuevas
+- `sb = supabase as any` solo para tablas sin tipos generados
+
+---
+
+## 8. PLAN DE EJECUCIÓN — FASES REALES
+
+### FASE 1 — Migración DB `014_clients_v2_and_ig_publisher.sql`
+- ADD COLUMN: health_score, slack_channel, industry, parent_client_id, setup_paid → `clients`
+- CREATE TABLE: contacts, instagram_publish_queue, instagram_conversations, instagram_messages
+- RLS + indexes en todo
+
+### FASE 2 — Seed real `scripts/seed-real.ts`
+- Limpiar tablas demo
+- Cargar: Ann, GovBidder (Cristián+Santo), Vendly, Spriovanni
+- Cargar: 20 tareas reales, 6 meses revenue, expenses, 5 business docs, 1 launch, 1 strategy, 4 automations
+
+### FASE 3 — Clientes mejorado
+- Detail page por cliente con contexto completo
+- Health score widget
+- Contacts (múltiples por cliente)
+- Slack channel link
+- Parent/child (Vendly → Spriovanni)
+
+### FASE 4 — Instagram Publisher + Inbox
+- Publisher: crear IMAGE/REEL/CAROUSEL, programar, publicar
+- Inbox: DMs + Comments unificados
+
+### FASE 5 — Automatizaciones UI (reemplaza ComingSoon)
+- Lista de 4 automations activas con estado
+- Logs de ejecución
+- Toggle enable/disable
+
+### FASE 6 — Carousel Studio MVP
+- Editor de slides básico
+- Exportar como PNG
+- Integrar con publisher
+
+### FASE 7 — Docs de replicación
+- DEPLOY-NEW-CLIENT.md
+- INSTAGRAM-SETUP.md
+- DEMO-SCRIPT.md
+
+---
+
+## 9. ESTIMACIÓN POR FASE
+
+| Fase | Estimado | Riesgo |
+|---|---|---|
+| 014 migración | 1h | 🟢 Bajo |
+| Seed real | 1h | 🟢 Bajo |
+| Clientes mejorado | 2-3h | 🟢 Bajo |
+| IG Publisher | 3-4h | 🟡 Medio |
+| IG Inbox DMs | 4-5h | 🔴 Alto (Graph API DMs) |
+| Automations UI | 1-2h | 🟢 Bajo |
+| Carousel Studio MVP | 3-4h | 🟡 Medio |
+| Docs | 1-2h | 🟢 Bajo |
+| **TOTAL** | **~20h** | — |
+
+---
+
+## 10. RIESGOS
+
+| Riesgo | Impacto | Mitigación |
+|---|---|---|
+| IG DMs requieren Business Verification en Meta | 🔴 Bloqueante | Implementar UI pero mostrar aviso claro si sin permisos |
+| `tasks.created_by NOT NULL` con datos existentes | 🟡 Medio | Seed usa `(select id from profiles limit 1)` |
+| Demo data ficticia convive con data real | 🟡 Medio | Seed real limpia primero las tablas |
+| Carousel Studio complejo para hacer bien | 🟡 Medio | MVP: solo editor de texto + export, sin drag&drop |
+
+---
+
+## 11. FUERA DE SCOPE (esta sesión)
+
+- Stripe / pagos
+- ManyChat API (sin credenciales)
+- Meta Ads API (sin credenciales)
+- Google Ads
+- Sentry
+- Multi-tenant (es single-tenant)
+
+---
+
+## RESUMEN EJECUTIVO
+
+**Funciona hoy y NO toca:** Auth, Layout, Tasks, CRM/Leads, Metrics, Research AI, CoachMap, Launches.
+
+**Blocker crítico para ventas:** La data demo ficticia tiene que ser reemplazada por data real ANTES de mostrar el dashboard. Es lo primero que hago en Fase 2.
+
+**Lo más complejo:** Instagram Inbox (DMs) — depende de Business Verification con Meta. Si no está aprobado, implemento la UI pero con estado "pendiente de verificación".
+
+**Orden de impacto para ventas:**
+1. Seed real (Ann + GovBidder visibles en el dashboard)
+2. Clientes con health score + contacts
+3. Automations UI (demuestra que el OS está "vivo")
+4. IG Publisher (demuestra el módulo de contenido)
+
+---
+
+> ⏸️ **PAUSA — Esperando OK de Juampi para arrancar Fase 1.**
 
 ---
 
