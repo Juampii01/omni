@@ -6,7 +6,11 @@ import type {
   FacebookPage,
 } from "./types"
 
+// Facebook Graph API — used for Meta Ads / Pages only
 const GRAPH = `https://graph.facebook.com/${process.env.META_GRAPH_API_VERSION ?? "v23.0"}`
+
+// Instagram Graph API — used for all Instagram Business API calls
+const IG_GRAPH = `https://graph.instagram.com/${process.env.META_GRAPH_API_VERSION ?? "v23.0"}`
 
 async function graphGet<T>(path: string, token: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${GRAPH}${path}`)
@@ -21,20 +25,34 @@ async function graphGet<T>(path: string, token: string, params: Record<string, s
   return res.json() as Promise<T>
 }
 
-// ── OAuth ─────────────────────────────────────────────────────────────────────
+/** Uses graph.instagram.com — for all Instagram Business API calls */
+async function graphIGGet<T>(path: string, token: string, params: Record<string, string> = {}): Promise<T> {
+  const url = new URL(`${IG_GRAPH}${path}`)
+  url.searchParams.set("access_token", token)
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
+
+  const res = await fetch(url.toString(), { next: { revalidate: 0 } })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Instagram Graph API ${path} → ${res.status}: ${body}`)
+  }
+  return res.json() as Promise<T>
+}
+
+// ── OAuth (Instagram Business Login — api.instagram.com) ─────────────────────
 
 export function buildOAuthURL(redirectUri: string, state: string): string {
+  // Instagram Business Login (2024+): uses api.instagram.com with INSTAGRAM_APP_ID
   const scopes = [
-    "instagram_basic",
-    "instagram_content_publish",
-    "instagram_manage_comments",
-    "instagram_manage_insights",
-    "pages_show_list",
-    "pages_read_engagement",
+    "instagram_business_basic",
+    "instagram_business_content_publish",
+    "instagram_business_manage_comments",
+    "instagram_business_manage_insights",
+    "instagram_business_manage_messages",
   ].join(",")
 
-  const url = new URL(`https://www.facebook.com/${process.env.META_GRAPH_API_VERSION ?? "v23.0"}/dialog/oauth`)
-  url.searchParams.set("client_id", process.env.META_APP_ID!)
+  const url = new URL("https://api.instagram.com/oauth/authorize")
+  url.searchParams.set("client_id", process.env.INSTAGRAM_APP_ID!)
   url.searchParams.set("redirect_uri", redirectUri)
   url.searchParams.set("scope", scopes)
   url.searchParams.set("response_type", "code")
@@ -43,24 +61,28 @@ export function buildOAuthURL(redirectUri: string, state: string): string {
 }
 
 export async function exchangeCodeForToken(code: string, redirectUri: string): Promise<string> {
-  const url = new URL(`${GRAPH}/oauth/access_token`)
-  url.searchParams.set("client_id", process.env.META_APP_ID!)
-  url.searchParams.set("client_secret", process.env.META_APP_SECRET!)
-  url.searchParams.set("redirect_uri", redirectUri)
-  url.searchParams.set("code", code)
-
-  const r = await fetch(url.toString())
+  const r = await fetch("https://api.instagram.com/oauth/access_token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.INSTAGRAM_APP_ID!,
+      client_secret: process.env.INSTAGRAM_APP_SECRET!,
+      grant_type: "authorization_code",
+      redirect_uri: redirectUri,
+      code,
+    }),
+  })
   if (!r.ok) throw new Error(`Token exchange failed: ${await r.text()}`)
   const data = await r.json()
   return data.access_token as string
 }
 
 export async function getLongLivedToken(shortToken: string): Promise<{ access_token: string; expires_in: number }> {
-  const url = new URL(`${GRAPH}/oauth/access_token`)
-  url.searchParams.set("grant_type", "fb_exchange_token")
-  url.searchParams.set("client_id", process.env.META_APP_ID!)
-  url.searchParams.set("client_secret", process.env.META_APP_SECRET!)
-  url.searchParams.set("fb_exchange_token", shortToken)
+  const url = new URL("https://graph.instagram.com/access_token")
+  url.searchParams.set("grant_type", "ig_exchange_token")
+  url.searchParams.set("client_id", process.env.INSTAGRAM_APP_ID!)
+  url.searchParams.set("client_secret", process.env.INSTAGRAM_APP_SECRET!)
+  url.searchParams.set("access_token", shortToken)
 
   const r = await fetch(url.toString())
   if (!r.ok) throw new Error(`Long-lived token exchange failed: ${await r.text()}`)
@@ -76,16 +98,50 @@ export async function getPages(userToken: string): Promise<FacebookPage[]> {
   return data.data
 }
 
-export async function getIGProfile(igUserId: string, pageToken: string): Promise<IGAccount> {
-  return graphGet<IGAccount>(`/${igUserId}`, pageToken, {
+export async function getIGProfile(igUserId: string, token: string): Promise<IGAccount> {
+  return graphIGGet<IGAccount>(`/${igUserId}`, token, {
     fields: "id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count",
   })
+}
+
+/**
+ * Instagram Business Login flow (2024+):
+ * /me on graph.instagram.com returns the IG Business user directly.
+ * No Facebook Page needed.
+ */
+export async function getIGAccountDirect(userToken: string): Promise<IGAccount & { ig_user_id: string }> {
+  const data = await graphIGGet<{
+    id: string
+    username: string
+    name: string
+    biography?: string
+    website?: string
+    profile_picture_url?: string
+    followers_count?: number
+    follows_count?: number
+    media_count?: number
+  }>("/me", userToken, {
+    fields: "id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count",
+  })
+
+  return {
+    ig_user_id: data.id,
+    id: data.id,
+    username: data.username,
+    name: data.name,
+    biography: data.biography ?? undefined,
+    website: data.website ?? undefined,
+    profile_picture_url: data.profile_picture_url ?? undefined,
+    followers_count: data.followers_count ?? 0,
+    follows_count: data.follows_count ?? 0,
+    media_count: data.media_count ?? 0,
+  }
 }
 
 // ── Media ─────────────────────────────────────────────────────────────────────
 
 export async function getRecentMedia(igUserId: string, token: string, limit = 25): Promise<IGMedia[]> {
-  const data = await graphGet<{ data: IGMedia[] }>(`/${igUserId}/media`, token, {
+  const data = await graphIGGet<{ data: IGMedia[] }>(`/${igUserId}/media`, token, {
     fields: "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp",
     limit: String(limit),
   })
@@ -98,7 +154,7 @@ export async function getMediaInsights(mediaId: string, mediaType: string, token
   const metrics = isVideo ? [...baseMetrics, "plays", "total_interactions"] : [...baseMetrics, "total_interactions"]
 
   try {
-    const data = await graphGet<{ data: Array<{ name: string; values: Array<{ value: number }> }> }>(
+    const data = await graphIGGet<{ data: Array<{ name: string; values: Array<{ value: number }> }> }>(
       `/${mediaId}/insights`,
       token,
       { metric: metrics.join(",") }
@@ -131,7 +187,7 @@ export async function getAccountInsights(
   if (until) params.until = Math.floor(until.getTime() / 1000).toString()
 
   try {
-    const data = await graphGet<{ data: IGAccountInsight[] }>(`/${igUserId}/insights`, token, params)
+    const data = await graphIGGet<{ data: IGAccountInsight[] }>(`/${igUserId}/insights`, token, params)
     return data.data
   } catch {
     return []
@@ -141,7 +197,7 @@ export async function getAccountInsights(
 // ── Token refresh ─────────────────────────────────────────────────────────────
 
 export async function refreshLongLivedToken(token: string): Promise<{ access_token: string; expires_in: number }> {
-  const url = new URL(`${GRAPH}/refresh_access_token`)
+  const url = new URL("https://graph.instagram.com/refresh_access_token")
   url.searchParams.set("grant_type", "ig_refresh_token")
   url.searchParams.set("access_token", token)
 
@@ -167,7 +223,7 @@ export async function createImageContainer(
   if (caption && !isCarouselItem) body.caption = caption
   if (isCarouselItem) body.is_carousel_item = "true"
 
-  const r = await fetch(`${GRAPH}/${igUserId}/media`, {
+  const r = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams(body),
@@ -193,7 +249,7 @@ export async function createReelContainer(
   if (caption)  body.caption   = caption
   if (coverUrl) body.cover_url = coverUrl
 
-  const r = await fetch(`${GRAPH}/${igUserId}/media`, {
+  const r = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams(body),
@@ -217,7 +273,7 @@ export async function createCarouselContainer(
   }
   if (caption) body.caption = caption
 
-  const r = await fetch(`${GRAPH}/${igUserId}/media`, {
+  const r = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams(body),
@@ -238,7 +294,7 @@ export async function publishContainer(
     access_token: token,
   })
 
-  const r = await fetch(`${GRAPH}/${igUserId}/media_publish`, {
+  const r = await fetch(`${IG_GRAPH}/${igUserId}/media_publish`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
@@ -253,7 +309,7 @@ export async function getContainerStatus(
   containerId: string,
   token: string,
 ): Promise<{ status_code: "EXPIRED" | "ERROR" | "FINISHED" | "IN_PROGRESS" | "PUBLISHED"; error_message?: string }> {
-  const url = new URL(`${GRAPH}/${containerId}`)
+  const url = new URL(`${IG_GRAPH}/${containerId}`)
   url.searchParams.set("fields", "status_code,status")
   url.searchParams.set("access_token", token)
 
@@ -274,7 +330,7 @@ export async function getConversations(
   updated_time: string
   message_count: number
 }>> {
-  const url = new URL(`${GRAPH}/${igUserId}/conversations`)
+  const url = new URL(`${IG_GRAPH}/${igUserId}/conversations`)
   url.searchParams.set("platform", "instagram")
   url.searchParams.set("fields", "id,participants,updated_time,message_count")
   url.searchParams.set("access_token", token)
@@ -297,7 +353,7 @@ export async function getMessages(
   created_time: string
   attachments?: { data: Array<{ type: string; url?: string }> }
 }>> {
-  const url = new URL(`${GRAPH}/${conversationId}/messages`)
+  const url = new URL(`${IG_GRAPH}/${conversationId}/messages`)
   url.searchParams.set("fields", "id,message,from,created_time,attachments")
   url.searchParams.set("limit", String(limit))
   url.searchParams.set("access_token", token)
@@ -315,7 +371,7 @@ export async function sendMessage(
   recipientId: string,
   message: string,
 ): Promise<string> {
-  const r = await fetch(`${GRAPH}/${igUserId}/messages`, {
+  const r = await fetch(`${IG_GRAPH}/${igUserId}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
