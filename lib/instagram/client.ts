@@ -12,11 +12,7 @@ const GRAPH = `https://graph.facebook.com/${process.env.META_GRAPH_API_VERSION ?
 // Instagram Graph API (for long-lived tokens from graph.instagram.com)
 const IG_GRAPH = `https://graph.instagram.com`
 
-// Instagram Basic API — v21.0 on graph.instagram.com
-const IG_API = `https://graph.instagram.com/v21.0`
-
-// Same host that issues Instagram Login tokens
-const IG_API_HOST = `https://api.instagram.com/v1.0`
+// (IG_API and IG_API_HOST removed — /me doesn't exist in Business Login flow)
 
 async function graphGet<T>(path: string, token: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${GRAPH}${path}`)
@@ -48,7 +44,9 @@ async function graphIGGet<T>(path: string, token: string, params: Record<string,
 // ── OAuth (Instagram Business Login — api.instagram.com) ─────────────────────
 
 export function buildOAuthURL(redirectUri: string, state: string): string {
-  // Instagram Business Login (2024+): uses api.instagram.com with INSTAGRAM_APP_ID
+  // Instagram Business Login (2024+): uses www.instagram.com/oauth/authorize.
+  // api.instagram.com/oauth/authorize is the deprecated Basic Display API endpoint
+  // and issues a different token type that doesn't work with graph.instagram.com.
   const scopes = [
     "instagram_business_basic",
     "instagram_business_content_publish",
@@ -57,7 +55,7 @@ export function buildOAuthURL(redirectUri: string, state: string): string {
     "instagram_business_manage_messages",
   ].join(",")
 
-  const url = new URL("https://api.instagram.com/oauth/authorize")
+  const url = new URL("https://www.instagram.com/oauth/authorize")
   url.searchParams.set("client_id", process.env.INSTAGRAM_APP_ID!)
   url.searchParams.set("redirect_uri", redirectUri)
   url.searchParams.set("scope", scopes)
@@ -85,9 +83,10 @@ export async function exchangeCodeForToken(code: string, redirectUri: string): P
 }
 
 export async function getLongLivedToken(shortToken: string): Promise<{ access_token: string; expires_in: number }> {
+  // ig_exchange_token only needs client_secret + access_token.
+  // client_id is NOT a valid parameter here and may cause errors.
   const url = new URL("https://graph.instagram.com/access_token")
   url.searchParams.set("grant_type", "ig_exchange_token")
-  url.searchParams.set("client_id", process.env.INSTAGRAM_APP_ID!)
   url.searchParams.set("client_secret", process.env.INSTAGRAM_APP_SECRET!)
   url.searchParams.set("access_token", shortToken)
 
@@ -112,46 +111,43 @@ export async function getIGProfile(igUserId: string, token: string): Promise<IGA
 }
 
 /**
- * Instagram Login flow (2024+).
- * Tries graph.instagram.com/v21.0/me first, then falls back to api.instagram.com/v1.0/me.
+ * Instagram Business Login (2024+).
+ * Correct endpoint: graph.instagram.com/{user_id} — NOT /me.
+ * Requires a long-lived token (exchange short-lived first via getLongLivedToken).
  */
 export async function getIGAccountDirect(userToken: string, userId: string): Promise<IGAccount & { ig_user_id: string }> {
-  // Try both hosts — short-lived tokens may only work on api.instagram.com
-  const endpoints = [
-    `${IG_API}/me`,
-    `${IG_API_HOST}/me`,
-  ]
+  const url = new URL(`${IG_GRAPH}/${userId}`)
+  url.searchParams.set(
+    "fields",
+    "user_id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,account_type"
+  )
+  url.searchParams.set("access_token", userToken)
 
-  let lastError: Error | null = null
-  for (const base of endpoints) {
-    const url = new URL(base)
-    url.searchParams.set("fields", "id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count")
-    url.searchParams.set("access_token", userToken)
-
-    const res = await fetch(url.toString(), { next: { revalidate: 0 } })
-    if (res.ok) {
-      const data = await res.json() as {
-        id: string; username: string; name: string
-        biography?: string; website?: string; profile_picture_url?: string
-        followers_count?: number; follows_count?: number; media_count?: number
-      }
-      return {
-        ig_user_id: data.id || userId,
-        id: data.id || userId,
-        username: data.username,
-        name: data.name,
-        biography: data.biography ?? undefined,
-        website: data.website ?? undefined,
-        profile_picture_url: data.profile_picture_url ?? undefined,
-        followers_count: data.followers_count ?? 0,
-        follows_count: data.follows_count ?? 0,
-        media_count: data.media_count ?? 0,
-      }
-    }
+  const res = await fetch(url.toString(), { next: { revalidate: 0 } })
+  if (!res.ok) {
     const body = await res.text()
-    lastError = new Error(`Instagram API /me → ${res.status}: ${body}`)
+    throw new Error(`Instagram API /${userId} → ${res.status}: ${body}`)
   }
-  throw lastError!
+
+  const data = await res.json() as {
+    user_id?: string; id?: string; username: string; name?: string
+    biography?: string; website?: string; profile_picture_url?: string
+    followers_count?: number; follows_count?: number; media_count?: number
+    account_type?: string
+  }
+
+  return {
+    ig_user_id: data.user_id ?? data.id ?? userId,
+    id: data.id ?? data.user_id ?? userId,
+    username: data.username,
+    name: data.name ?? data.username,
+    biography: data.biography ?? undefined,
+    website: data.website ?? undefined,
+    profile_picture_url: data.profile_picture_url ?? undefined,
+    followers_count: data.followers_count ?? 0,
+    follows_count: data.follows_count ?? 0,
+    media_count: data.media_count ?? 0,
+  }
 }
 
 // ── Media ─────────────────────────────────────────────────────────────────────
