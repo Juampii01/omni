@@ -22,8 +22,8 @@ export default async function IntegrationsPage() {
     const [igRes, metaRes, ytRes] = await Promise.all([
       (supabase as any)
         .from("instagram_accounts")
-        .select("id,ig_user_id,username,name,profile_picture_url,followers_count,is_active")
-        .eq("is_active", true)
+        .select("id,ig_user_id,username,name,profile_picture_url,followers_count")
+        .eq("is_primary", true)
         .maybeSingle(),
       (supabase as any)
         .from("meta_ads_accounts")
@@ -46,7 +46,7 @@ export default async function IntegrationsPage() {
         ig_name: igRes.data.name ?? null,
         ig_profile_picture_url: igRes.data.profile_picture_url ?? null,
         followers_count: igRes.data.followers_count ?? null,
-        is_active: igRes.data.is_active,
+        is_active: true,
       }
     }
 

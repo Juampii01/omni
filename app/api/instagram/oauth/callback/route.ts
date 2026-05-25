@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth/get-user"
-import { exchangeCodeForToken, getLongLivedToken, getPages, getIGProfile } from "@/lib/instagram/client"
+import { exchangeCodeForToken, getIGAccountDirect } from "@/lib/instagram/client"
 import { encrypt } from "@/lib/crypto"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function GET(req: NextRequest) {
-  try { await requireAuth() } catch {
+  let user: Awaited<ReturnType<typeof requireAuth>>
+  try { user = await requireAuth() } catch {
     return NextResponse.redirect(`${APP_URL}/settings?ig_error=unauthorized`)
   }
 
@@ -20,7 +21,6 @@ export async function GET(req: NextRequest) {
   if (error) {
     return NextResponse.redirect(`${APP_URL}/settings?ig_error=${encodeURIComponent(error)}`)
   }
-
   if (!code) {
     return NextResponse.redirect(`${APP_URL}/settings?ig_error=no_code`)
   }
@@ -37,85 +37,86 @@ export async function GET(req: NextRequest) {
   try {
     const redirectUri = `${APP_URL}/api/instagram/oauth/callback`
 
-    // 1. Exchange code → short-lived token
-    const shortToken = await exchangeCodeForToken(code, redirectUri)
+    // 1. Exchange code → token + user_id
+    const { access_token: token, user_id: igUserId } = await exchangeCodeForToken(code, redirectUri)
 
-    // 2. Exchange → long-lived token (60 days)
-    const { access_token: longToken, expires_in } = await getLongLivedToken(shortToken)
-
-    // 3. Get FB pages → find the one with an IG Business Account
-    const pages = await getPages(longToken)
-    const pageWithIG = pages.find(p => p.instagram_business_account?.id)
-
-    if (!pageWithIG || !pageWithIG.instagram_business_account) {
-      return NextResponse.redirect(`${APP_URL}/settings?ig_error=no_ig_business_account`)
+    // 2. Try to fetch IG profile — non-blocking
+    let igProfile: Awaited<ReturnType<typeof getIGAccountDirect>> | null = null
+    try {
+      igProfile = await getIGAccountDirect(token, igUserId)
+    } catch (profileErr) {
+      console.warn("IG profile fetch failed (will sync later):", profileErr)
     }
 
-    const pageToken = pageWithIG.access_token
-    const igUserId = pageWithIG.instagram_business_account.id
+    const encryptedToken = encrypt(token)
+    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+    const username = igProfile?.username ?? `ig_${igUserId}`
 
-    // 4. Get IG profile
-    const profile = await getIGProfile(igUserId, pageToken)
+    // Use service client to bypass RLS for all writes
+    const supabase = await createServiceClient()
+    const sb = supabase as any
 
-    // 5. Encrypt tokens
-    const encryptedPageToken = encrypt(pageToken)
-    const encryptedUserToken = encrypt(longToken)
-
-    const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString()
-
-    const supabase = await createClient()
-
-    // 6. Upsert into integrations (stores encrypted tokens)
-    const { data: integration, error: intErr } = await (supabase as any)
+    // 3. Upsert integration
+    const { data: integration, error: intErr } = await sb
       .from("integrations")
       .upsert(
         {
           provider: "instagram",
-          account_name: profile.username,
+          account_name: username,
           account_id: igUserId,
-          access_token_encrypted: encryptedPageToken,
-          refresh_token_encrypted: encryptedUserToken,
+          access_token_encrypted: encryptedToken,
+          refresh_token_encrypted: encryptedToken,
           expires_at: expiresAt,
           scopes: [
-            "instagram_basic",
-            "instagram_content_publish",
-            "instagram_manage_comments",
-            "instagram_manage_insights",
-            "pages_show_list",
-            "pages_read_engagement",
+            "instagram_business_basic",
+            "instagram_business_content_publish",
+            "instagram_business_manage_comments",
+            "instagram_business_manage_insights",
+            "instagram_business_manage_messages",
           ],
-          metadata: { page_id: pageWithIG.id, page_name: pageWithIG.name },
+          metadata: {},
           is_active: true,
+          created_by: user.id,
         },
         { onConflict: "provider,account_id" }
       )
       .select("id")
       .single()
 
-    if (intErr) throw intErr
+    if (intErr) {
+      console.error("integrations upsert error:", intErr)
+      throw intErr
+    }
 
-    // 7. Upsert into instagram_accounts
-    await (supabase as any)
+    // 4. Upsert instagram_accounts — with full error logging
+    const { error: igErr } = await sb
       .from("instagram_accounts")
       .upsert(
         {
           integration_id: integration.id,
           ig_user_id: igUserId,
-          username: profile.username,
-          name: profile.name,
-          biography: profile.biography,
-          website: profile.website,
-          profile_picture_url: profile.profile_picture_url,
-          followers_count: profile.followers_count,
-          follows_count: profile.follows_count,
-          media_count: profile.media_count,
+          username,
+          name: igProfile?.name ?? username,
+          biography: igProfile?.biography ?? null,
+          website: igProfile?.website ?? null,
+          profile_picture_url: igProfile?.profile_picture_url ?? null,
+          followers_count: igProfile?.followers_count ?? 0,
+          follows_count: igProfile?.follows_count ?? 0,
+          media_count: igProfile?.media_count ?? 0,
           is_primary: true,
           last_synced_at: new Date().toISOString(),
         },
         { onConflict: "ig_user_id" }
       )
 
-    return NextResponse.redirect(`${APP_URL}/settings?ig_connected=1`)
+    if (igErr) {
+      console.error("instagram_accounts upsert error:", igErr)
+      throw igErr
+    }
+
+    console.log(`✓ Instagram connected: @${username} (${igUserId}) for user ${user.id}`)
+
+    return NextResponse.redirect(`${APP_URL}/settings/integrations?connected=instagram`)
   } catch (err) {
     console.error("IG OAuth callback error:", err)
     const msg = err instanceof Error ? err.message : "unknown"

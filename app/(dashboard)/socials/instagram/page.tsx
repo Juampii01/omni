@@ -12,7 +12,7 @@ export default async function InstagramPage() {
 
   const [{ data: accounts }, { data: queue }, { data: media }, { data: conversations }] = await Promise.all([
     sb.from("instagram_accounts")
-      .select("id, username, profile_picture_url, followers_count, ig_user_id, token_expires_at")
+      .select("id, username, profile_picture_url, followers_count, ig_user_id, last_synced_at")
       .limit(5),
     sb.from("instagram_publish_queue")
       .select("*")

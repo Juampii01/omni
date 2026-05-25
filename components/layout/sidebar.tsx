@@ -15,6 +15,7 @@ import {
   Rocket,
   Zap,
   Settings,
+  Instagram,
 } from "lucide-react"
 import { UserMenu } from "./user-menu"
 
@@ -34,6 +35,12 @@ const NAV_SECTIONS = [
       { label: "Tareas",         href: "/tasks",        icon: CheckSquare },
       { label: "Equipo",         href: "/team",         icon: UserCog },
       { label: "Contenido",      href: "/content",      icon: FileEdit },
+    ],
+  },
+  {
+    section: "Social",
+    items: [
+      { label: "Instagram",      href: "/socials/instagram", icon: Instagram },
     ],
   },
   {

@@ -9,8 +9,14 @@ import type {
 // Facebook Graph API — used for Meta Ads / Pages only
 const GRAPH = `https://graph.facebook.com/${process.env.META_GRAPH_API_VERSION ?? "v23.0"}`
 
-// Instagram Graph API — used for all Instagram Business API calls
-const IG_GRAPH = `https://graph.instagram.com/${process.env.META_GRAPH_API_VERSION ?? "v23.0"}`
+// Instagram Graph API (for long-lived tokens from graph.instagram.com)
+const IG_GRAPH = `https://graph.instagram.com`
+
+// Instagram Basic API — v21.0 on graph.instagram.com
+const IG_API = `https://graph.instagram.com/v21.0`
+
+// Same host that issues Instagram Login tokens
+const IG_API_HOST = `https://api.instagram.com/v1.0`
 
 async function graphGet<T>(path: string, token: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${GRAPH}${path}`)
@@ -60,7 +66,8 @@ export function buildOAuthURL(redirectUri: string, state: string): string {
   return url.toString()
 }
 
-export async function exchangeCodeForToken(code: string, redirectUri: string): Promise<string> {
+/** Returns access_token + user_id (Instagram Business Login includes user_id in the token response) */
+export async function exchangeCodeForToken(code: string, redirectUri: string): Promise<{ access_token: string; user_id: string }> {
   const r = await fetch("https://api.instagram.com/oauth/access_token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -74,7 +81,7 @@ export async function exchangeCodeForToken(code: string, redirectUri: string): P
   })
   if (!r.ok) throw new Error(`Token exchange failed: ${await r.text()}`)
   const data = await r.json()
-  return data.access_token as string
+  return { access_token: data.access_token as string, user_id: String(data.user_id) }
 }
 
 export async function getLongLivedToken(shortToken: string): Promise<{ access_token: string; expires_in: number }> {
@@ -105,37 +112,46 @@ export async function getIGProfile(igUserId: string, token: string): Promise<IGA
 }
 
 /**
- * Instagram Business Login flow (2024+):
- * /me on graph.instagram.com returns the IG Business user directly.
- * No Facebook Page needed.
+ * Instagram Login flow (2024+).
+ * Tries graph.instagram.com/v21.0/me first, then falls back to api.instagram.com/v1.0/me.
  */
-export async function getIGAccountDirect(userToken: string): Promise<IGAccount & { ig_user_id: string }> {
-  const data = await graphIGGet<{
-    id: string
-    username: string
-    name: string
-    biography?: string
-    website?: string
-    profile_picture_url?: string
-    followers_count?: number
-    follows_count?: number
-    media_count?: number
-  }>("/me", userToken, {
-    fields: "id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count",
-  })
+export async function getIGAccountDirect(userToken: string, userId: string): Promise<IGAccount & { ig_user_id: string }> {
+  // Try both hosts — short-lived tokens may only work on api.instagram.com
+  const endpoints = [
+    `${IG_API}/me`,
+    `${IG_API_HOST}/me`,
+  ]
 
-  return {
-    ig_user_id: data.id,
-    id: data.id,
-    username: data.username,
-    name: data.name,
-    biography: data.biography ?? undefined,
-    website: data.website ?? undefined,
-    profile_picture_url: data.profile_picture_url ?? undefined,
-    followers_count: data.followers_count ?? 0,
-    follows_count: data.follows_count ?? 0,
-    media_count: data.media_count ?? 0,
+  let lastError: Error | null = null
+  for (const base of endpoints) {
+    const url = new URL(base)
+    url.searchParams.set("fields", "id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count")
+    url.searchParams.set("access_token", userToken)
+
+    const res = await fetch(url.toString(), { next: { revalidate: 0 } })
+    if (res.ok) {
+      const data = await res.json() as {
+        id: string; username: string; name: string
+        biography?: string; website?: string; profile_picture_url?: string
+        followers_count?: number; follows_count?: number; media_count?: number
+      }
+      return {
+        ig_user_id: data.id || userId,
+        id: data.id || userId,
+        username: data.username,
+        name: data.name,
+        biography: data.biography ?? undefined,
+        website: data.website ?? undefined,
+        profile_picture_url: data.profile_picture_url ?? undefined,
+        followers_count: data.followers_count ?? 0,
+        follows_count: data.follows_count ?? 0,
+        media_count: data.media_count ?? 0,
+      }
+    }
+    const body = await res.text()
+    lastError = new Error(`Instagram API /me → ${res.status}: ${body}`)
   }
+  throw lastError!
 }
 
 // ── Media ─────────────────────────────────────────────────────────────────────
