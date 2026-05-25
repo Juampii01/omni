@@ -40,10 +40,21 @@ export async function GET(req: NextRequest) {
     // 1. Exchange code → short-lived token + user_id
     const { access_token: shortToken, user_id: igUserId } = await exchangeCodeForToken(code, redirectUri)
 
-    // 2. Exchange short-lived → long-lived (60 días)
-    const { access_token: token, expires_in } = await getLongLivedToken(shortToken)
+    // 2. Try to exchange short-lived → long-lived (60 días). Non-blocking:
+    //    if this fails (e.g. app not yet approved for exchange), proceed with
+    //    the short-lived token — the profile fetch still works with it.
+    let token = shortToken
+    let expiresIn = 3600 // short-lived = 1h fallback
+    try {
+      const ll = await getLongLivedToken(shortToken)
+      token = ll.access_token
+      expiresIn = ll.expires_in
+      console.log(`✓ Long-lived token obtained, expires in ${Math.round(expiresIn / 86400)}d`)
+    } catch (llErr) {
+      console.warn("Long-lived token exchange failed (using short-lived):", llErr)
+    }
 
-    // 3. Fetch IG profile with long-lived token — endpoint: graph.instagram.com/{user_id}
+    // 3. Fetch IG profile — endpoint: graph.instagram.com/{user_id}
     let igProfile: Awaited<ReturnType<typeof getIGAccountDirect>> | null = null
     try {
       igProfile = await getIGAccountDirect(token, igUserId)
@@ -52,7 +63,7 @@ export async function GET(req: NextRequest) {
     }
 
     const encryptedToken = encrypt(token)
-    const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString()
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
     const username = igProfile?.username ?? `ig_${igUserId}`
 
     // Use service client to bypass RLS for all writes (synchronous — no cookies)
