@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
       .upsert(
         {
           integration_id: integration.id,
+          user_id: user.id,
           ig_user_id: igUserId,
           username,
           name: igProfile?.name ?? username,
