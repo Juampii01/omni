@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth/get-user"
-import { exchangeCodeForToken, getIGAccountDirect } from "@/lib/instagram/client"
+import { exchangeCodeForToken, getLongLivedToken, getIGAccountDirect } from "@/lib/instagram/client"
 import { encrypt } from "@/lib/crypto"
-import { createClient, createServiceClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
@@ -37,10 +37,13 @@ export async function GET(req: NextRequest) {
   try {
     const redirectUri = `${APP_URL}/api/instagram/oauth/callback`
 
-    // 1. Exchange code → token + user_id
-    const { access_token: token, user_id: igUserId } = await exchangeCodeForToken(code, redirectUri)
+    // 1. Exchange code → short-lived token + user_id
+    const { access_token: shortToken, user_id: igUserId } = await exchangeCodeForToken(code, redirectUri)
 
-    // 2. Try to fetch IG profile — non-blocking
+    // 2. Exchange short-lived → long-lived (60 días)
+    const { access_token: token, expires_in } = await getLongLivedToken(shortToken)
+
+    // 3. Fetch IG profile with long-lived token — endpoint: graph.instagram.com/{user_id}
     let igProfile: Awaited<ReturnType<typeof getIGAccountDirect>> | null = null
     try {
       igProfile = await getIGAccountDirect(token, igUserId)
@@ -49,11 +52,11 @@ export async function GET(req: NextRequest) {
     }
 
     const encryptedToken = encrypt(token)
-    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+    const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString()
     const username = igProfile?.username ?? `ig_${igUserId}`
 
-    // Use service client to bypass RLS for all writes
-    const supabase = await createServiceClient()
+    // Use service client to bypass RLS for all writes (synchronous — no cookies)
+    const supabase = createServiceClient()
     const sb = supabase as any
 
     // 3. Upsert integration
