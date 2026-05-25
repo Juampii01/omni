@@ -44,7 +44,9 @@ async function graphIGGet<T>(path: string, token: string, params: Record<string,
 // ── OAuth (Instagram Business Login — api.instagram.com) ─────────────────────
 
 export function buildOAuthURL(redirectUri: string, state: string): string {
-  // Instagram Business Login (2024+): uses api.instagram.com with INSTAGRAM_APP_ID
+  // Instagram Business Login (2024+): uses www.instagram.com/oauth/authorize.
+  // api.instagram.com/oauth/authorize is the deprecated Basic Display API endpoint
+  // and issues a different token type that doesn't work with graph.instagram.com.
   const scopes = [
     "instagram_business_basic",
     "instagram_business_content_publish",
@@ -53,7 +55,7 @@ export function buildOAuthURL(redirectUri: string, state: string): string {
     "instagram_business_manage_messages",
   ].join(",")
 
-  const url = new URL("https://api.instagram.com/oauth/authorize")
+  const url = new URL("https://www.instagram.com/oauth/authorize")
   url.searchParams.set("client_id", process.env.INSTAGRAM_APP_ID!)
   url.searchParams.set("redirect_uri", redirectUri)
   url.searchParams.set("scope", scopes)
@@ -81,9 +83,10 @@ export async function exchangeCodeForToken(code: string, redirectUri: string): P
 }
 
 export async function getLongLivedToken(shortToken: string): Promise<{ access_token: string; expires_in: number }> {
+  // ig_exchange_token only needs client_secret + access_token.
+  // client_id is NOT a valid parameter here and may cause errors.
   const url = new URL("https://graph.instagram.com/access_token")
   url.searchParams.set("grant_type", "ig_exchange_token")
-  url.searchParams.set("client_id", process.env.INSTAGRAM_APP_ID!)
   url.searchParams.set("client_secret", process.env.INSTAGRAM_APP_SECRET!)
   url.searchParams.set("access_token", shortToken)
 
