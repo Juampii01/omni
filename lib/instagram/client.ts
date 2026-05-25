@@ -82,16 +82,20 @@ export async function exchangeCodeForToken(code: string, redirectUri: string): P
   return { access_token: data.access_token as string, user_id: String(data.user_id) }
 }
 
-export async function getLongLivedToken(shortToken: string): Promise<{ access_token: string; expires_in: number }> {
-  // ig_exchange_token only needs client_secret + access_token.
-  // client_id is NOT a valid parameter here and may cause errors.
+export async function getLongLivedToken(shortToken: string): Promise<{ access_token: string; expires_in: number; token_type?: string }> {
+  // Instagram Business Login: exchange short-lived (1h) → long-lived (60d)
+  // Endpoint: GET graph.instagram.com/access_token
+  // Params: grant_type=ig_exchange_token, client_secret, access_token
   const url = new URL("https://graph.instagram.com/access_token")
   url.searchParams.set("grant_type", "ig_exchange_token")
   url.searchParams.set("client_secret", process.env.INSTAGRAM_APP_SECRET!)
   url.searchParams.set("access_token", shortToken)
 
-  const r = await fetch(url.toString())
-  if (!r.ok) throw new Error(`Long-lived token exchange failed: ${await r.text()}`)
+  const r = await fetch(url.toString(), { method: "GET" })
+  if (!r.ok) {
+    const body = await r.text()
+    throw new Error(`Long-lived token exchange failed (${r.status}): ${body}`)
+  }
   return r.json()
 }
 
