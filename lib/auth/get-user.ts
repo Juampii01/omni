@@ -46,20 +46,12 @@ export async function getUser(): Promise<AuthUser | null> {
         .single()
       profile = created as Tables<"profiles"> | null
     } catch {
-      // Si falla el insert (p.ej. SUPABASE_SERVICE_ROLE_KEY no está en las env vars de Vercel),
-      // devolvemos un perfil sintético para cortar el loop de redirección.
-      // El perfil real se insertará la próxima vez que haya conectividad con el service role.
-      return {
-        id: user.id,
-        email: user.email ?? "",
-        full_name: (user.user_metadata?.full_name as string) ?? null,
-        avatar_url: (user.user_metadata?.avatar_url as string) ?? null,
-        role: "owner" as const,
-        department_id: null,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as unknown as AuthUser
+      // Falla CERRADO: si no pudimos obtener/crear un profile real y válido,
+      // NO otorgamos acceso (y mucho menos rol elevado). Devolvemos null →
+      // requireAuth() redirige a /login. El profile real se creará en el próximo
+      // intento cuando el service role esté disponible.
+      console.error("getUser: fallo al crear profile vía service role; denegando acceso (fail-closed)")
+      return null
     }
   }
 
