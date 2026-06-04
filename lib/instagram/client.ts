@@ -109,18 +109,37 @@ export async function getPages(userToken: string): Promise<FacebookPage[]> {
 }
 
 export async function getIGProfile(igUserId: string, token: string): Promise<IGAccount> {
-  return graphIGGet<IGAccount>(`/${igUserId}`, token, {
-    fields: "id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count",
+  // Instagram Business Login: usar /me, NO /{user_id} (este último da
+  // error 100/subcode 33 "Unsupported get request" con estos tokens).
+  void igUserId
+  const data = await graphIGGet<{
+    user_id?: string; id?: string; username: string; name?: string
+    biography?: string; website?: string; profile_picture_url?: string
+    followers_count?: number; follows_count?: number; media_count?: number
+  }>(`/me`, token, {
+    fields: "user_id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count",
   })
+  return {
+    id: data.id ?? data.user_id ?? igUserId,
+    username: data.username,
+    name: data.name ?? data.username,
+    biography: data.biography ?? undefined,
+    website: data.website ?? undefined,
+    profile_picture_url: data.profile_picture_url ?? undefined,
+    followers_count: data.followers_count ?? 0,
+    follows_count: data.follows_count ?? 0,
+    media_count: data.media_count ?? 0,
+  }
 }
 
 /**
  * Instagram Business Login (2024+).
- * Correct endpoint: graph.instagram.com/{user_id} — NOT /me.
- * Requires a long-lived token (exchange short-lived first via getLongLivedToken).
+ * Endpoint correcto: graph.instagram.com/me (NO /{user_id}, que devuelve
+ * error 100/subcode 33 con tokens de Instagram Login).
+ * Requiere un long-lived token (exchange short-lived primero vía getLongLivedToken).
  */
 export async function getIGAccountDirect(userToken: string, userId: string): Promise<IGAccount & { ig_user_id: string }> {
-  const url = new URL(`${IG_GRAPH}/${userId}`)
+  const url = new URL(`${IG_GRAPH}/me`)
   url.searchParams.set(
     "fields",
     "user_id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,account_type"
@@ -157,7 +176,9 @@ export async function getIGAccountDirect(userToken: string, userId: string): Pro
 // ── Media ─────────────────────────────────────────────────────────────────────
 
 export async function getRecentMedia(igUserId: string, token: string, limit = 25): Promise<IGMedia[]> {
-  const data = await graphIGGet<{ data: IGMedia[] }>(`/${igUserId}/media`, token, {
+  // /me/media — NO /{user_id}/media (este último falla con "unsupported request")
+  void igUserId
+  const data = await graphIGGet<{ data: IGMedia[] }>(`/me/media`, token, {
     fields: "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp",
     limit: String(limit),
   })
@@ -202,8 +223,10 @@ export async function getAccountInsights(
   if (since) params.since = Math.floor(since.getTime() / 1000).toString()
   if (until) params.until = Math.floor(until.getTime() / 1000).toString()
 
+  void igUserId
   try {
-    const data = await graphIGGet<{ data: IGAccountInsight[] }>(`/${igUserId}/insights`, token, params)
+    // /me/insights — NO /{user_id}/insights con tokens de Instagram Login
+    const data = await graphIGGet<{ data: IGAccountInsight[] }>(`/me/insights`, token, params)
     return data.data
   } catch {
     return []
