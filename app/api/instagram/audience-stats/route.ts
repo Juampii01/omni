@@ -38,10 +38,12 @@ export async function GET(): Promise<NextResponse> {
       .from("instagram_media")
       .select(
         "id, caption, permalink, thumbnail_url, media_url, timestamp, " +
-          "instagram_media_insights(likes, comments, plays, impressions)",
+          "instagram_media_insights(likes, comments, plays, impressions, snapshotted_at)",
       )
       .eq("account_id", acct.id)
       .order("timestamp", { ascending: false })
+      .order("snapshotted_at", { referencedTable: "instagram_media_insights", ascending: false })
+      .limit(1, { referencedTable: "instagram_media_insights" })
       .limit(100),
   ])
 

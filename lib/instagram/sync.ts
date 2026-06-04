@@ -75,37 +75,41 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
         { onConflict: "ig_media_id" }
       )
 
-      // 3. Fetch insights per media
-      const insights = await getMediaInsights(m.id, m.media_type, token)
-      if (Object.keys(insights).length > 0) {
-        const { data: mediaRow } = await (supabase as any)
-          .from("instagram_media")
-          .select("id")
-          .eq("ig_media_id", m.id)
-          .single()
+      // 3. Métricas: desde los CAMPOS de /me/media (confiable). El endpoint
+      //    /insights por-media es best-effort (puede fallar) y solo aporta
+      //    reach/saves/shares extra.
+      const { data: mediaRow } = await (supabase as any)
+        .from("instagram_media")
+        .select("id")
+        .eq("ig_media_id", m.id)
+        .single()
 
-        if (mediaRow) {
-          const reach = insights.reach ?? 0
-          const interactions = insights.total_interactions ?? 0
-          const engRate = reach > 0 ? interactions / reach : 0
+      if (mediaRow) {
+        const likes = m.like_count ?? 0
+        const comments = m.comments_count ?? 0
+        const views = m.views ?? 0
 
-          await (supabase as any).from("instagram_media_insights").upsert(
-            {
-              media_id: mediaRow.id,
-              snapshotted_at: new Date().toISOString(),
-              impressions: insights.impressions,
-              reach: insights.reach,
-              likes: insights.likes,
-              comments: insights.comments,
-              shares: insights.shares,
-              saves: insights.saved,
-              plays: insights.plays,
-              total_interactions: insights.total_interactions,
-              engagement_rate: engRate,
-            },
-            { onConflict: "media_id,snapshotted_at", ignoreDuplicates: true }
-          )
-        }
+        const extra = await getMediaInsights(m.id, m.media_type, token) // {} si falla
+        const totalInteractions = extra.total_interactions ?? likes + comments
+        // engagement_rate guardado como PORCENTAJE (ej: 4.2 = 4.2%)
+        const engRate = views > 0 ? ((likes + comments) / views) * 100 : 0
+
+        await (supabase as any).from("instagram_media_insights").upsert(
+          {
+            media_id: mediaRow.id,
+            snapshotted_at: new Date().toISOString(),
+            impressions: extra.impressions ?? null,
+            reach: extra.reach ?? null,
+            likes,
+            comments,
+            shares: extra.shares ?? null,
+            saves: extra.saved ?? null,
+            plays: views,
+            total_interactions: totalInteractions,
+            engagement_rate: Math.min(engRate, 99.9999),
+          },
+          { onConflict: "media_id,snapshotted_at", ignoreDuplicates: true }
+        )
       }
     }
   } catch (e) {

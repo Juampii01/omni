@@ -176,10 +176,13 @@ export async function getIGAccountDirect(userToken: string, userId: string): Pro
 // ── Media ─────────────────────────────────────────────────────────────────────
 
 export async function getRecentMedia(igUserId: string, token: string, limit = 25): Promise<IGMedia[]> {
-  // /me/media — NO /{user_id}/media (este último falla con "unsupported request")
+  // /me/media — NO /{user_id}/media (este último falla con "unsupported request").
+  // Pedimos like_count, comments_count y views como CAMPOS (confiable), en vez
+  // de depender del endpoint /insights por-media que falla con la API nueva.
   void igUserId
   const data = await graphIGGet<{ data: IGMedia[] }>(`/me/media`, token, {
-    fields: "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp",
+    fields:
+      "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count,views",
     limit: String(limit),
   })
   return data.data

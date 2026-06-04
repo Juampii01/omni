@@ -23,6 +23,11 @@ export interface IGMedia {
   caption?: string
   timestamp: string
   children?: { data: Array<{ id: string }> }
+  // Métricas devueltas directamente como campos por /me/media (Instagram Login).
+  // `views` es el campo v23 para plays de Reels (reemplaza al deprecado video_views).
+  like_count?: number
+  comments_count?: number
+  views?: number
 }
 
 export interface IGMediaInsights {

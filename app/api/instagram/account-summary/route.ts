@@ -68,6 +68,8 @@ export async function GET(): Promise<NextResponse<AccountSummary>> {
       "id, media_type, instagram_media_insights(plays, impressions, total_interactions, engagement_rate, snapshotted_at)",
     )
     .eq("account_id", acct.id)
+    .order("snapshotted_at", { referencedTable: "instagram_media_insights", ascending: false })
+    .limit(1, { referencedTable: "instagram_media_insights" })
 
   let totalViews = 0
   let engSum = 0

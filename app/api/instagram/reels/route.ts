@@ -56,6 +56,8 @@ export async function GET(): Promise<NextResponse> {
     )
     .eq("account_id", acct.id)
     .order("timestamp", { ascending: false })
+    .order("snapshotted_at", { referencedTable: "instagram_media_insights", ascending: false })
+    .limit(1, { referencedTable: "instagram_media_insights" })
     .limit(100)
 
   const reels: UserReelRow[] = ((rows ?? []) as Array<{
