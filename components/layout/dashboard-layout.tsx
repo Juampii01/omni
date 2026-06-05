@@ -5,7 +5,6 @@ import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/sonner"
-import { LiveNotifications } from "@/components/live-notifications"
 import { AiChatWidget } from "@/components/ai-chat-widget"
 
 interface DashboardLayoutProps {
@@ -44,7 +43,6 @@ export function DashboardLayout({ children, businessName }: DashboardLayoutProps
       </div>
 
       <Toaster richColors position="top-right" closeButton />
-      <LiveNotifications />
       <AiChatWidget />
     </div>
   )
