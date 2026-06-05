@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import {
   Send, Sparkles, Loader2, RotateCcw, Copy, AlertTriangle,
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { AiMessage } from "@/components/ai-message"
 import { useAiCredits } from "@/hooks/use-ai-credits"
 import { useConversations, type Conversation } from "@/hooks/use-conversations"
+import { useUser } from "@/hooks/use-user"
 import { createClient } from "@/lib/supabase/client"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -73,16 +74,24 @@ function relativeDate(iso: string): string {
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 
-function MessageBubble({ msg, onCopy }: { msg: Message; onCopy: (t: string) => void }) {
+function MessageBubble({
+  msg, onCopy, userAvatar, userInitials,
+}: {
+  msg: Message
+  onCopy: (t: string) => void
+  userAvatar?: string | null
+  userInitials?: string
+}) {
   const isUser = msg.role === "user"
   return (
     <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
       <Avatar className="h-8 w-8 shrink-0 mt-0.5">
+        {isUser && userAvatar && <AvatarImage src={userAvatar} alt="" />}
         <AvatarFallback className={cn(
           "text-[11px] font-semibold",
           isUser ? "bg-brand text-white" : "bg-muted text-muted-foreground",
         )}>
-          {isUser ? "Vos" : "IA"}
+          {isUser ? (userInitials || "Vos") : "IA"}
         </AvatarFallback>
       </Avatar>
       <div className={cn(
@@ -273,6 +282,12 @@ export default function AiPage() {
     isLoading: loadingConvs,
     refresh:   refreshConversations,
   } = useConversations()
+
+  const { user } = useUser()
+  const userAvatar = user?.avatar_url ?? null
+  const userInitials = user?.full_name
+    ? user.full_name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+    : undefined
 
   useEffect(() => { document.title = "IA Asistente - Omni" }, [])
 
@@ -564,7 +579,7 @@ export default function AiPage() {
             <div className="space-y-6 pb-4">
               {messages.map((msg, i) => (
                 <div key={i} className="space-y-2">
-                  <MessageBubble msg={msg} onCopy={copyToClipboard} />
+                  <MessageBubble msg={msg} onCopy={copyToClipboard} userAvatar={userAvatar} userInitials={userInitials} />
                   {msg.role === "assistant" && msg.proposals && msg.proposals.length > 0 && (
                     <ProposalList
                       proposals={msg.proposals}
