@@ -1,297 +1,324 @@
 "use client"
 
 import { useState } from "react"
-import { PageHeader } from "@/components/page-header"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Target, Loader2, Sparkles, ChevronDown, ChevronUp, Users } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import {
+  Compass, Package, Target, Rocket, LineChart, Flag,
+  Plus, X, Save, Loader2, Check,
+} from "lucide-react"
 
-type Client = { id: string; full_name: string; company?: string; instagram_handle?: string; tier: string }
-type ContentCalendar = { weekly_structure?: string; content_pillars?: string[]; monthly_themes?: string[] }
+// ── Tipos ───────────────────────────────────────────────────────────────────
+type Tier = { name: string; price: string; value_prop: string; features: string[] }
+type OKR = { objective: string; metric: string; target: string; current: string; period: string; status: string }
+type Growth = { channel: string; focus: string; status: string }
+type Initiative = { title: string; description: string; priority: "P1" | "P2" | "P3"; status: string }
+type Forecast = { target_mrr: string; target_clients: string; horizon_months: number; notes: string }
+
 type Strategy = {
-  id: string
-  client_id: string
-  version: number
-  created_at: string
-  prospecting_angles?: string
-  communication_angles?: string
-  content_calendar?: ContentCalendar
-  offer_structure?: string
-  sales_approach?: string
-  landing_page_copy?: string
-  closing_angles?: string
-  tokens_used?: number
+  mission: string
+  vision: string
+  core_values: string[]
+  positioning: string
+  tiers: Tier[]
+  okrs: OKR[]
+  growth: Growth[]
+  forecast: Forecast
+  initiatives: Initiative[]
 }
 
-const COACH_MAP_TABS = [
-  { key: "prospecting_angles",    label: "Prospección",    emoji: "🎯" },
-  { key: "communication_angles",  label: "Comunicación",   emoji: "💬" },
-  { key: "content_calendar",      label: "Calendario",     emoji: "📅" },
-  { key: "offer_structure",       label: "Oferta",         emoji: "💎" },
-  { key: "sales_approach",        label: "Sales",          emoji: "🤝" },
-  { key: "landing_page_copy",     label: "Landing",        emoji: "🚀" },
-  { key: "closing_angles",        label: "Cierre",         emoji: "🔑" },
-]
-
-function fmtDate(ts: string) {
-  return new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+const EMPTY: Strategy = {
+  mission: "", vision: "", core_values: [], positioning: "",
+  tiers: [], okrs: [], growth: [], initiatives: [],
+  forecast: { target_mrr: "", target_clients: "", horizon_months: 12, notes: "" },
 }
 
-function TextBlock({ text }: { text: string }) {
-  const lines = text.split("\n")
+const BLANK_TIER: Tier = { name: "", price: "", value_prop: "", features: [] }
+const BLANK_OKR: OKR = { objective: "", metric: "", target: "", current: "", period: "", status: "en curso" }
+const BLANK_GROWTH: Growth = { channel: "", focus: "", status: "activo" }
+const BLANK_INIT: Initiative = { title: "", description: "", priority: "P2", status: "propuesta" }
+
+const GROWTH_STATUS = ["activo", "planificado", "pausado"]
+const OKR_STATUS = ["en curso", "cumplido", "en riesgo"]
+const INIT_STATUS = ["propuesta", "en curso", "hecha", "pausada"]
+
+// ── Primitivos de input (theme-agnostic) ─────────────────────────────────────
+const inputCls =
+  "w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-brand/50 transition-colors font-sans"
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5 text-sm text-muted-foreground leading-relaxed">
-      {lines.map((line, i) => {
-        if (!line.trim()) return <div key={i} className="h-1" />
-        if (line.startsWith("## ")) return <h3 key={i} className="text-sm font-semibold text-foreground mt-3">{line.slice(3)}</h3>
-        if (line.startsWith("- ") || line.startsWith("• ")) {
-          const content = line.slice(2)
-          const parts = content.split(/\*\*(.*?)\*\*/g)
-          return (
-            <li key={i} className="ml-4 list-disc">
-              {parts.map((p, j) => j % 2 === 1 ? <strong key={j} className="text-foreground">{p}</strong> : p)}
-            </li>
-          )
-        }
-        const parts = line.split(/\*\*(.*?)\*\*/g)
-        return (
-          <p key={i}>
-            {parts.map((p, j) => j % 2 === 1 ? <strong key={j} className="text-foreground">{p}</strong> : p)}
-          </p>
-        )
-      })}
-    </div>
+    <label className="block">
+      <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5 font-sans">{label}</span>
+      {children}
+    </label>
   )
 }
 
-function CalendarBlock({ data }: { data: ContentCalendar }) {
-  return (
-    <div className="space-y-4 text-sm">
-      {data.weekly_structure && (
-        <div>
-          <p className="font-semibold text-foreground mb-1">Estructura semanal</p>
-          <p className="text-muted-foreground">{data.weekly_structure}</p>
-        </div>
-      )}
-      {data.content_pillars && data.content_pillars.length > 0 && (
-        <div>
-          <p className="font-semibold text-foreground mb-2">Pilares de contenido</p>
-          <div className="flex flex-wrap gap-2">
-            {data.content_pillars.map((p, i) => (
-              <span key={i} className="px-2.5 py-1 rounded-full bg-brand/10 text-brand border border-brand/20 text-xs font-medium">{p}</span>
-            ))}
-          </div>
-        </div>
-      )}
-      {data.monthly_themes && data.monthly_themes.length > 0 && (
-        <div>
-          <p className="font-semibold text-foreground mb-2">Temas mensuales</p>
-          <div className="space-y-1.5">
-            {data.monthly_themes.map((t, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="text-brand font-mono text-xs mt-0.5 w-5 flex-shrink-0">M{i + 1}</span>
-                <span className="text-muted-foreground text-sm">{t}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function StrategyCard({
-  strategy, client, defaultOpen,
-}: {
-  strategy: Strategy
-  client?: Client
-  defaultOpen?: boolean
+function Section({ icon: Icon, title, desc, children, action }: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  desc?: string
+  children: React.ReactNode
+  action?: React.ReactNode
 }) {
-  const [open, setOpen] = useState(defaultOpen ?? false)
-
   return (
-    <Card className={cn("border-border transition-colors", open && "border-brand/20")}>
-      <CardHeader className="pb-2 cursor-pointer" onClick={() => setOpen(o => !o)}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-sm font-semibold">
-                {client?.full_name ?? "Cliente"}
-              </CardTitle>
-              <Badge variant="outline" className="text-[10px]">v{strategy.version}</Badge>
-              {client?.tier && (
-                <span className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full border font-medium",
-                  client.tier === "vip" ? "bg-amber-400/10 text-amber-400 border-amber-400/30" :
-                  client.tier === "premium" ? "bg-brand/10 text-brand border-brand/30" :
-                  "bg-muted text-muted-foreground border-border"
-                )}>{client.tier.toUpperCase()}</span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Generado el {fmtDate(strategy.created_at)}
-              {strategy.tokens_used && ` · ${strategy.tokens_used.toLocaleString()} tokens`}
-            </p>
-          </div>
-          {open ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
-                : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />}
+    <section className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand flex-shrink-0">
+          <Icon className="h-5 w-5" />
         </div>
-      </CardHeader>
-
-      {open && (
-        <CardContent className="border-t border-border pt-4">
-          <Tabs defaultValue="prospecting_angles">
-            <TabsList className="flex-wrap h-auto gap-1 mb-4">
-              {COACH_MAP_TABS.map(tab => (
-                <TabsTrigger key={tab.key} value={tab.key} className="text-xs gap-1">
-                  <span>{tab.emoji}</span>{tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {COACH_MAP_TABS.map(tab => (
-              <TabsContent key={tab.key} value={tab.key}>
-                {tab.key === "content_calendar" ? (
-                  strategy.content_calendar
-                    ? <CalendarBlock data={strategy.content_calendar} />
-                    : <p className="text-sm text-muted-foreground">Sin datos</p>
-                ) : (
-                  strategy[tab.key as keyof Strategy]
-                    ? <TextBlock text={String(strategy[tab.key as keyof Strategy])} />
-                    : <p className="text-sm text-muted-foreground">Sin datos generados para esta sección.</p>
-                )}
-              </TabsContent>
-            ))}
-          </Tabs>
-        </CardContent>
-      )}
-    </Card>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {desc && <p className="text-xs text-muted-foreground truncate">{desc}</p>}
+        </div>
+        {action}
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </section>
   )
 }
 
-export function StrategyClient({
-  clients,
-  initialStrategies,
-}: {
-  clients: Client[]
-  initialStrategies: Strategy[]
-}) {
-  const [strategies, setStrategies] = useState<Strategy[]>(initialStrategies)
-  const [selectedClientId, setSelectedClientId] = useState<string>("")
-  const [generating, setGenerating] = useState(false)
+function Pill({ active, onClick, children, disabled }: { active: boolean; onClick: () => void; children: React.ReactNode; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors font-sans capitalize disabled:opacity-50",
+        active ? "bg-brand/15 text-brand" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+      )}
+    >
+      {children}
+    </button>
+  )
+}
 
-  async function handleGenerate() {
-    if (!selectedClientId) { toast.error("Seleccioná un cliente"); return }
-    setGenerating(true)
+function AddBtn({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors font-sans"
+    >
+      <Plus className="h-3.5 w-3.5" /> {label}
+    </button>
+  )
+}
 
-    try {
-      const res = await fetch("/api/strategy/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: selectedClientId }),
+function RemoveBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="text-muted-foreground/50 hover:text-destructive transition-colors flex-shrink-0" title="Quitar">
+      <X className="h-4 w-4" />
+    </button>
+  )
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
+export function StrategyClient({ initial, canEdit }: { initial: Partial<Strategy> | null; canEdit: boolean }) {
+  const [data, setData] = useState<Strategy>(() => ({
+    ...EMPTY,
+    ...(initial ?? {}),
+    forecast: { ...EMPTY.forecast, ...(initial?.forecast ?? {}) },
+    core_values: initial?.core_values ?? [],
+    tiers: initial?.tiers ?? [],
+    okrs: initial?.okrs ?? [],
+    growth: initial?.growth ?? [],
+    initiatives: initial?.initiatives ?? [],
+  }))
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const ro = !canEdit
+  function patch(p: Partial<Strategy>) { setData((d) => ({ ...d, ...p })); setDirty(true); setSaved(false) }
+  function patchForecast(p: Partial<Forecast>) { patch({ forecast: { ...data.forecast, ...p } }) }
+
+  async function save() {
+    if (saving) return
+    setSaving(true)
+    const sb = createClient() as any
+    const { error } = await sb
+      .from("business_strategy")
+      .update({
+        mission: data.mission, vision: data.vision, core_values: data.core_values, positioning: data.positioning,
+        tiers: data.tiers, okrs: data.okrs, growth: data.growth, forecast: data.forecast, initiatives: data.initiatives,
+        updated_at: new Date().toISOString(),
       })
-
-      if (!res.ok) {
-        const data = await res.json()
-        toast.error(data.error ?? "Error generando estrategia")
-        return
-      }
-
-      const { strategy } = await res.json()
-      setStrategies(prev => [strategy, ...prev])
-      toast.success("CoachMap generado correctamente")
-    } catch {
-      toast.error("Error de conexión")
-    } finally {
-      setGenerating(false)
-    }
+      .eq("singleton", true)
+    setSaving(false)
+    if (error) { toast.error("No se pudo guardar: " + error.message); return }
+    setDirty(false); setSaved(true)
+    toast.success("Estrategia guardada")
   }
 
-  const clientMap = Object.fromEntries(clients.map(c => [c.id, c]))
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Estrategia · CoachMap"
-        description="7 outputs estratégicos por cliente: prospección, comunicación, calendario, oferta, sales, landing y cierre."
-        icon={Target}
-      />
+    <div className="space-y-6 max-w-4xl pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Estrategia de KAVAR</h1>
+          <p className="text-sm text-muted-foreground">El norte del negocio: oferta, objetivos, crecimiento y forecast.</p>
+        </div>
+      </div>
 
-      {/* Generator */}
-      <Card className="border-border">
-        <CardContent className="pt-5">
-          <div className="flex flex-col sm:flex-row gap-3 items-end">
-            <div className="flex-1 space-y-1.5">
-              <p className="text-sm font-medium">Generar nuevo CoachMap</p>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccioná un cliente activo..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.length === 0 ? (
-                    <SelectItem value="_none" disabled>Sin clientes activos</SelectItem>
-                  ) : (
-                    clients.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.full_name}{c.company ? ` — ${c.company}` : ""}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              onClick={handleGenerate}
-              disabled={generating || !selectedClientId}
-              className="bg-brand hover:bg-brand/90 sm:w-auto w-full"
-            >
-              {generating
-                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generando (~30s)...</>
-                : <><Sparkles className="h-4 w-4 mr-2" />Generar CoachMap</>}
-            </Button>
+      {/* 1 · Norte */}
+      <Section icon={Compass} title="Norte" desc="Propósito y posicionamiento">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Misión">
+            <textarea className={cn(inputCls, "resize-none")} rows={3} disabled={ro} value={data.mission} onChange={(e) => patch({ mission: e.target.value })} placeholder="¿Para qué existe KAVAR?" />
+          </Field>
+          <Field label="Visión">
+            <textarea className={cn(inputCls, "resize-none")} rows={3} disabled={ro} value={data.vision} onChange={(e) => patch({ vision: e.target.value })} placeholder="¿A dónde vamos?" />
+          </Field>
+        </div>
+        <Field label="Posicionamiento">
+          <textarea className={cn(inputCls, "resize-none")} rows={2} disabled={ro} value={data.positioning} onChange={(e) => patch({ positioning: e.target.value })} placeholder="Una frase que define cómo te ve el mercado" />
+        </Field>
+        <div>
+          <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2 font-sans">Valores</span>
+          <div className="space-y-2">
+            {data.core_values.map((v, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input className={inputCls} disabled={ro} value={v} onChange={(e) => { const a = [...data.core_values]; a[i] = e.target.value; patch({ core_values: a }) }} placeholder={`Valor ${i + 1}`} />
+                {!ro && <RemoveBtn onClick={() => patch({ core_values: data.core_values.filter((_, j) => j !== i) })} />}
+              </div>
+            ))}
+            {!ro && <AddBtn label="Agregar valor" onClick={() => patch({ core_values: [...data.core_values, ""] })} />}
           </div>
-          {clients.length === 0 && (
-            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              Primero agregá clientes activos en la sección Clientes.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
-      {/* Past strategies */}
-      {strategies.length === 0 ? (
-        <Card className="border-border">
-          <CardContent className="flex flex-col items-center justify-center py-20 text-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
-              <Target className="w-6 h-6 text-brand" />
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium">Sin estrategias generadas</p>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                Seleccioná un cliente y generá su CoachMap completo con IA.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
+      {/* 2 · Oferta & Pricing */}
+      <Section icon={Package} title="Oferta & Pricing" desc="Los tiers del producto"
+        action={!ro && <AddBtn label="Tier" onClick={() => patch({ tiers: [...data.tiers, { ...BLANK_TIER }] })} />}>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {data.tiers.map((t, i) => {
+            const upd = (p: Partial<Tier>) => { const a = [...data.tiers]; a[i] = { ...a[i], ...p }; patch({ tiers: a }) }
+            return (
+              <div key={i} className="rounded-xl border border-border p-4 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <input className={cn(inputCls, "font-semibold")} disabled={ro} value={t.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Nombre del tier" />
+                  {!ro && <RemoveBtn onClick={() => patch({ tiers: data.tiers.filter((_, j) => j !== i) })} />}
+                </div>
+                <input className={cn(inputCls, "text-brand font-medium")} disabled={ro} value={t.price} onChange={(e) => upd({ price: e.target.value })} placeholder="Precio" />
+                <textarea className={cn(inputCls, "resize-none")} rows={2} disabled={ro} value={t.value_prop} onChange={(e) => upd({ value_prop: e.target.value })} placeholder="Propuesta de valor" />
+                <div className="space-y-1.5">
+                  {t.features.map((f, fi) => (
+                    <div key={fi} className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-brand flex-shrink-0" />
+                      <input className={cn(inputCls, "py-1 text-xs")} disabled={ro} value={f} onChange={(e) => { const fs = [...t.features]; fs[fi] = e.target.value; upd({ features: fs }) }} placeholder="Feature" />
+                      {!ro && <RemoveBtn onClick={() => upd({ features: t.features.filter((_, j) => j !== fi) })} />}
+                    </div>
+                  ))}
+                  {!ro && <AddBtn label="Feature" onClick={() => upd({ features: [...t.features, ""] })} />}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+
+      {/* 3 · Objetivos & OKRs */}
+      <Section icon={Target} title="Objetivos & OKRs" desc="Metas del período con métrica y target"
+        action={!ro && <AddBtn label="OKR" onClick={() => patch({ okrs: [...data.okrs, { ...BLANK_OKR }] })} />}>
+        {data.okrs.length === 0 && <p className="text-sm text-muted-foreground">Sin objetivos cargados.</p>}
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-            {strategies.length} {strategies.length === 1 ? "estrategia generada" : "estrategias generadas"}
-          </p>
-          {strategies.map((s, i) => (
-            <StrategyCard
-              key={s.id}
-              strategy={s}
-              client={clientMap[s.client_id]}
-              defaultOpen={i === 0}
-            />
-          ))}
+          {data.okrs.map((o, i) => {
+            const upd = (p: Partial<OKR>) => { const a = [...data.okrs]; a[i] = { ...a[i], ...p }; patch({ okrs: a }) }
+            const cur = parseFloat(o.current), tgt = parseFloat(o.target)
+            const pct = isFinite(cur) && isFinite(tgt) && tgt > 0 ? Math.min(100, Math.round((cur / tgt) * 100)) : null
+            return (
+              <div key={i} className="rounded-xl border border-border p-4 space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <input className={cn(inputCls, "font-medium")} disabled={ro} value={o.objective} onChange={(e) => upd({ objective: e.target.value })} placeholder="Objetivo" />
+                  {!ro && <RemoveBtn onClick={() => patch({ okrs: data.okrs.filter((_, j) => j !== i) })} />}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={o.metric} onChange={(e) => upd({ metric: e.target.value })} placeholder="Métrica" />
+                  <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={o.current} onChange={(e) => upd({ current: e.target.value })} placeholder="Actual" />
+                  <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={o.target} onChange={(e) => upd({ target: e.target.value })} placeholder="Target" />
+                  <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={o.period} onChange={(e) => upd({ period: e.target.value })} placeholder="Período (Q3 2026)" />
+                </div>
+                {pct !== null && (
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden"><div className="h-full bg-brand rounded-full" style={{ width: `${pct}%` }} /></div>
+                    <span className="text-xs text-muted-foreground tabular-nums">{pct}%</span>
+                  </div>
+                )}
+                <div className="flex gap-1">{OKR_STATUS.map((s) => <Pill key={s} active={o.status === s} disabled={ro} onClick={() => upd({ status: s })}>{s}</Pill>)}</div>
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+
+      {/* 4 · Crecimiento */}
+      <Section icon={Rocket} title="Motor de crecimiento" desc="Canales y palancas"
+        action={!ro && <AddBtn label="Canal" onClick={() => patch({ growth: [...data.growth, { ...BLANK_GROWTH }] })} />}>
+        {data.growth.length === 0 && <p className="text-sm text-muted-foreground">Sin canales cargados.</p>}
+        <div className="space-y-2.5">
+          {data.growth.map((g, i) => {
+            const upd = (p: Partial<Growth>) => { const a = [...data.growth]; a[i] = { ...a[i], ...p }; patch({ growth: a }) }
+            return (
+              <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-border p-3">
+                <input className={cn(inputCls, "sm:w-52 font-medium")} disabled={ro} value={g.channel} onChange={(e) => upd({ channel: e.target.value })} placeholder="Canal" />
+                <input className={inputCls} disabled={ro} value={g.focus} onChange={(e) => upd({ focus: e.target.value })} placeholder="Foco / palanca" />
+                <div className="flex gap-1 flex-shrink-0">{GROWTH_STATUS.map((s) => <Pill key={s} active={g.status === s} disabled={ro} onClick={() => upd({ status: s })}>{s}</Pill>)}</div>
+                {!ro && <RemoveBtn onClick={() => patch({ growth: data.growth.filter((_, j) => j !== i) })} />}
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+
+      {/* 5 · Forecast */}
+      <Section icon={LineChart} title="Forecast" desc="Proyección del negocio">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <Field label="Target MRR"><input className={inputCls} disabled={ro} value={data.forecast.target_mrr} onChange={(e) => patchForecast({ target_mrr: e.target.value })} placeholder="$10.000" /></Field>
+          <Field label="Target clientes"><input className={inputCls} disabled={ro} value={data.forecast.target_clients} onChange={(e) => patchForecast({ target_clients: e.target.value })} placeholder="15" /></Field>
+          <Field label="Horizonte (meses)"><input type="number" className={inputCls} disabled={ro} value={data.forecast.horizon_months} onChange={(e) => patchForecast({ horizon_months: Number(e.target.value) })} /></Field>
+        </div>
+        <Field label="Notas"><textarea className={cn(inputCls, "resize-none")} rows={2} disabled={ro} value={data.forecast.notes} onChange={(e) => patchForecast({ notes: e.target.value })} placeholder="Supuestos, escenarios, cash flow…" /></Field>
+      </Section>
+
+      {/* 6 · Iniciativas */}
+      <Section icon={Flag} title="Iniciativas estratégicas" desc="Proyectos clave priorizados"
+        action={!ro && <AddBtn label="Iniciativa" onClick={() => patch({ initiatives: [...data.initiatives, { ...BLANK_INIT }] })} />}>
+        {data.initiatives.length === 0 && <p className="text-sm text-muted-foreground">Sin iniciativas cargadas.</p>}
+        <div className="space-y-2.5">
+          {data.initiatives.map((it, i) => {
+            const upd = (p: Partial<Initiative>) => { const a = [...data.initiatives]; a[i] = { ...a[i], ...p }; patch({ initiatives: a }) }
+            return (
+              <div key={i} className="rounded-xl border border-border p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1 flex-shrink-0">{(["P1", "P2", "P3"] as const).map((p) => <Pill key={p} active={it.priority === p} disabled={ro} onClick={() => upd({ priority: p })}>{p}</Pill>)}</div>
+                  <input className={cn(inputCls, "font-medium")} disabled={ro} value={it.title} onChange={(e) => upd({ title: e.target.value })} placeholder="Iniciativa" />
+                  {!ro && <RemoveBtn onClick={() => patch({ initiatives: data.initiatives.filter((_, j) => j !== i) })} />}
+                </div>
+                <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={it.description} onChange={(e) => upd({ description: e.target.value })} placeholder="Descripción / resultado esperado" />
+                <div className="flex gap-1">{INIT_STATUS.map((s) => <Pill key={s} active={it.status === s} disabled={ro} onClick={() => upd({ status: s })}>{s}</Pill>)}</div>
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+
+      {/* Barra de guardado */}
+      {canEdit && dirty && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-full border border-border bg-card/95 backdrop-blur px-4 py-2.5 shadow-lg">
+          <span className="text-sm text-muted-foreground font-sans">Cambios sin guardar</span>
+          <button onClick={save} disabled={saving} className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-1.5 text-sm font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60 transition-colors font-sans">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Guardar
+          </button>
+        </div>
+      )}
+      {canEdit && saved && !dirty && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-4 py-2 text-sm text-brand font-sans">
+          <Check className="h-4 w-4" /> Guardado
         </div>
       )}
     </div>
