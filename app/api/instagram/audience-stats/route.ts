@@ -37,7 +37,7 @@ export async function GET(): Promise<NextResponse> {
     sb
       .from("instagram_media")
       .select(
-        "id, caption, permalink, thumbnail_url, media_url, timestamp, " +
+        "id, media_type, caption, permalink, thumbnail_url, media_url, timestamp, " +
           "instagram_media_insights(likes, comments, plays, impressions, snapshotted_at)",
       )
       .eq("account_id", acct.id)
@@ -49,6 +49,7 @@ export async function GET(): Promise<NextResponse> {
 
   type Reel = {
     id: string
+    media_type: string
     caption: string | null
     permalink: string | null
     thumbnail_url: string | null
@@ -58,6 +59,8 @@ export async function GET(): Promise<NextResponse> {
   }
 
   const reels = (media ?? []) as Reel[]
+  // Contar SOLO reels/videos (igual que account-summary en el header), no todos los media.
+  const reelCount = reels.filter((r) => r.media_type === "REEL" || r.media_type === "VIDEO").length
   const flat = reels.map((r) => {
     const ins = r.instagram_media_insights?.[0] ?? {}
     return {
@@ -113,7 +116,7 @@ export async function GET(): Promise<NextResponse> {
       totalLikes,
       totalComments,
       totalViews,
-      reelCount: flat.length,
+      reelCount,
       avgLikes: flat.length > 0 ? Math.round(totalLikes / flat.length) : 0,
       avgComments: flat.length > 0 ? Math.round(totalComments / flat.length) : 0,
       byWeekday,

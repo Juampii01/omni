@@ -175,17 +175,36 @@ export async function getIGAccountDirect(userToken: string, userId: string): Pro
 
 // ── Media ─────────────────────────────────────────────────────────────────────
 
-export async function getRecentMedia(igUserId: string, token: string, limit = 25): Promise<IGMedia[]> {
-  // /me/media — NO /{user_id}/media (este último falla con "unsupported request").
-  // Pedimos like_count, comments_count y views como CAMPOS (confiable), en vez
-  // de depender del endpoint /insights por-media que falla con la API nueva.
+export async function getRecentMedia(igUserId: string, token: string, max = 200): Promise<IGMedia[]> {
+  // /me/media con paginación (sigue paging.next) para traer TODOS los media,
+  // no solo los primeros 25. Pedimos like_count/comments_count/views como CAMPOS.
+  // `max` es un tope de seguridad para no loopear infinito.
   void igUserId
-  const data = await graphIGGet<{ data: IGMedia[] }>(`/me/media`, token, {
-    fields:
-      "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count,views",
-    limit: String(limit),
-  })
-  return data.data
+  const fields =
+    "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count,views"
+  const first = new URL(`${IG_GRAPH}/me/media`)
+  first.searchParams.set("fields", fields)
+  first.searchParams.set("limit", "100")
+  first.searchParams.set("access_token", token)
+
+  const all: IGMedia[] = []
+  let nextUrl: string | null = first.toString()
+  let page = 0
+  while (nextUrl && all.length < max && page < 10) {
+    const res = await fetch(nextUrl, { next: { revalidate: 0 } })
+    if (!res.ok) {
+      const body = await res.text()
+      // La primera página es error fatal (igual que antes); las siguientes solo cortan.
+      if (page === 0) throw new Error(`Instagram Graph API /me/media → ${res.status}: ${body}`)
+      console.error(`getRecentMedia: paginación cortada en página ${page}: ${res.status} ${body}`)
+      break
+    }
+    const json = (await res.json()) as { data?: IGMedia[]; paging?: { next?: string } }
+    all.push(...(json.data ?? []))
+    nextUrl = json.paging?.next ?? null
+    page++
+  }
+  return all.slice(0, max)
 }
 
 export async function getMediaInsights(mediaId: string, mediaType: string, token: string): Promise<IGMediaInsights> {
@@ -372,13 +391,18 @@ export async function getConversations(
   updated_time: string
   message_count: number
 }>> {
-  const url = new URL(`${IG_GRAPH}/${igUserId}/conversations`)
+  // /me/conversations — NO /{user_id}/conversations (falla con tokens de Instagram Login)
+  void igUserId
+  const url = new URL(`${IG_GRAPH}/me/conversations`)
   url.searchParams.set("platform", "instagram")
   url.searchParams.set("fields", "id,participants,updated_time,message_count")
   url.searchParams.set("access_token", token)
 
   const r = await fetch(url.toString(), { next: { revalidate: 0 } })
-  if (!r.ok) return []
+  if (!r.ok) {
+    console.error(`getConversations failed: ${r.status} ${await r.text()}`)
+    return []
+  }
   const data = await r.json()
   return data.data ?? []
 }
@@ -413,7 +437,9 @@ export async function sendMessage(
   recipientId: string,
   message: string,
 ): Promise<string> {
-  const r = await fetch(`${IG_GRAPH}/${igUserId}/messages`, {
+  // /me/messages — NO /{user_id}/messages (falla con tokens de Instagram Login)
+  void igUserId
+  const r = await fetch(`${IG_GRAPH}/me/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -422,7 +448,11 @@ export async function sendMessage(
       access_token: token,
     }),
   })
-  if (!r.ok) throw new Error(`sendMessage failed: ${await r.text()}`)
+  if (!r.ok) {
+    const body = await r.text()
+    console.error(`sendMessage failed: ${r.status} ${body}`)
+    throw new Error(`sendMessage failed: ${body}`)
+  }
   const data = await r.json()
   return data.message_id as string
 }

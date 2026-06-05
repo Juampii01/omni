@@ -57,7 +57,7 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
 
   // 2. Fetch recent media + upsert
   try {
-    const media = await getRecentMedia(igUserId, token, 25)
+    const media = await getRecentMedia(igUserId, token) // paginado, hasta 200
 
     for (const m of media) {
       await (supabase as any).from("instagram_media").upsert(
