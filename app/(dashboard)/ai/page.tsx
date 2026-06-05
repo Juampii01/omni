@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import {
   Send, Sparkles, Loader2, RotateCcw, Copy, AlertTriangle,
   Plus, Trash2, MessageSquare, ChevronRight,
-  Check, X, Pencil, PlusCircle, Database,
+  Check, X, Pencil, PlusCircle, Database, Paperclip, FileText, ImageIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AiMessage } from "@/components/ai-message"
@@ -44,6 +44,31 @@ const OP_META: Record<Proposal["op"], { label: string; icon: typeof Check; cls: 
   create: { label: "Crear", icon: PlusCircle, cls: "text-emerald-400" },
   update: { label: "Editar", icon: Pencil, cls: "text-blue-400" },
   delete: { label: "Eliminar", icon: Trash2, cls: "text-red-400" },
+}
+
+// ── Adjuntos (documentos que la IA procesa) ─────────────────────────────────────
+type Attachment = { kind: "pdf" | "image" | "text"; name: string; mediaType?: string; data: string; size: number }
+const IMG_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"]
+const MAX_FILE = 10 * 1024 * 1024
+
+function readAttachment(file: File): Promise<Attachment> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error("read"))
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
+    const isImage = file.type.startsWith("image/")
+    if (!isPdf && !isImage) {
+      reader.onload = () => resolve({ kind: "text", name: file.name, data: String(reader.result ?? ""), size: file.size })
+      reader.readAsText(file)
+    } else {
+      reader.onload = () => {
+        const res = String(reader.result ?? "")
+        const base64 = res.includes(",") ? res.split(",")[1] : res
+        resolve({ kind: isPdf ? "pdf" : "image", name: file.name, mediaType: isPdf ? "application/pdf" : file.type, data: base64, size: file.size })
+      }
+      reader.readAsDataURL(file)
+    }
+  })
 }
 
 // ── Suggestions ───────────────────────────────────────────────────────────────
@@ -270,6 +295,23 @@ export default function AiPage() {
 
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [attachment, setAttachment] = useState<Attachment | null>(null)
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    if (file.size > MAX_FILE) { toast.error("El archivo supera 10MB"); return }
+    if (file.type.startsWith("image/") && !IMG_TYPES.includes(file.type)) {
+      toast.error("Imagen no soportada (usá PNG, JPG, WEBP o GIF)"); return
+    }
+    try {
+      setAttachment(await readAttachment(file))
+    } catch {
+      toast.error("No se pudo leer el archivo")
+    }
+  }
 
   const {
     used, limit, percentage,
@@ -363,11 +405,14 @@ export default function AiPage() {
 
   const send = useCallback(async (text?: string) => {
     const content = (text ?? input).trim()
-    if (!content || streaming || isLimitReached) return
+    const att = attachment
+    if ((!content && !att) || streaming || isLimitReached) return
 
     setInput("")
+    setAttachment(null)
 
-    const userMsg: Message        = { role: "user", content }
+    const messageText = content || (att ? `Procesá el documento "${att.name}"` : "")
+    const userMsg: Message        = { role: "user", content: messageText }
     const history: Message[]      = [...messages, userMsg]
     setMessages(history)
     setStreaming(true)
@@ -379,6 +424,7 @@ export default function AiPage() {
         body:    JSON.stringify({
           messages: history.map(m => ({ role: m.role, content: m.content })),
           conversationId,
+          attachment: att ? { kind: att.kind, name: att.name, mediaType: att.mediaType, data: att.data } : undefined,
         }),
       })
 
@@ -420,7 +466,7 @@ export default function AiPage() {
       setStreaming(false)
       setTimeout(() => textareaRef.current?.focus(), 100)
     }
-  }, [input, messages, streaming, conversationId, isLimitReached, refreshCredits, refreshConversations])
+  }, [input, attachment, messages, streaming, conversationId, isLimitReached, refreshCredits, refreshConversations])
 
   // ── Proposal confirm / cancel ─────────────────────────────────────────────
   const setProposalState = useCallback((msgIndex: number, proposalId: string, state: ProposalState, error?: string) => {
@@ -630,7 +676,37 @@ export default function AiPage() {
 
         {/* Input */}
         <div className="mt-3 space-y-1.5 shrink-0">
+          {/* Chip del adjunto */}
+          {attachment && (
+            <div className="flex items-center gap-2 self-start w-fit rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-xs">
+              {attachment.kind === "image"
+                ? <ImageIcon className="h-3.5 w-3.5 text-brand shrink-0" />
+                : <FileText className="h-3.5 w-3.5 text-brand shrink-0" />}
+              <span className="max-w-[220px] truncate text-foreground font-sans">{attachment.name}</span>
+              <span className="text-muted-foreground/60 font-sans">{(attachment.size / 1024).toFixed(0)} KB</span>
+              <button onClick={() => setAttachment(null)} className="text-muted-foreground hover:text-foreground" title="Quitar">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.csv,.txt,.md,.json,.tsv,application/pdf,image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={onPickFile}
+          />
           <div className="flex gap-2 items-end border border-border rounded-2xl p-2 bg-background focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/20 transition-all">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={streaming || isLimitReached}
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              title="Adjuntar documento (PDF, imagen, CSV, TXT…)"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
             <Textarea
               ref={textareaRef}
               value={input}
@@ -639,7 +715,7 @@ export default function AiPage() {
               placeholder={
                 isLimitReached
                   ? "Creditos agotados"
-                  : "Escribi tu pregunta... (Enter para enviar, Shift+Enter para nueva linea)"
+                  : "Escribi tu pregunta o adjuntá un documento... (Enter para enviar)"
               }
               className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 min-h-[40px] max-h-40 text-sm p-1"
               rows={1}
@@ -647,7 +723,7 @@ export default function AiPage() {
             />
             <Button
               onClick={() => send()}
-              disabled={!input.trim() || streaming || isLimitReached}
+              disabled={(!input.trim() && !attachment) || streaming || isLimitReached}
               size="icon"
               className="h-8 w-8 shrink-0 bg-brand hover:bg-brand-hover rounded-xl"
             >

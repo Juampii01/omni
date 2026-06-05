@@ -8,6 +8,29 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const MODEL = "claude-opus-4-5"
 const MAX_ITERATIONS = 6
 const MAX_PROPOSALS = 12
+const MAX_ATTACHMENT_B64 = 14_000_000 // ~10MB de archivo
+const MAX_TEXT_CHARS = 200_000
+
+type Attachment = { kind: "pdf" | "image" | "text"; name?: string; mediaType?: string; data?: string }
+
+// Construye el contenido del último mensaje del usuario, embebiendo el adjunto si lo hay.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildUserContent(text: string, att?: Attachment): any {
+  if (!att || !att.data) return text
+  const name = att.name ?? "documento"
+  if (att.kind === "text") {
+    const clipped = att.data.slice(0, MAX_TEXT_CHARS)
+    return `Adjunto el documento "${name}". Contenido:\n\n${clipped}\n\n---\nInstrucción: ${text || "procesá el documento y proponé las acciones que pueda cargar."}`
+  }
+  const blocks: any[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (att.kind === "pdf") {
+    blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: att.data } })
+  } else {
+    blocks.push({ type: "image", source: { type: "base64", media_type: att.mediaType ?? "image/png", data: att.data } })
+  }
+  blocks.push({ type: "text", text: text || `Procesá el documento adjunto "${name}" y proponé las acciones (leads, tareas, clientes, KPIs, etc.) que pueda cargar.` })
+  return blocks
+}
 
 // ── Context breve del negocio ────────────────────────────────────────────────
 async function getBriefContext(sb: any): Promise<{ bizName: string; ctx: string }> {
@@ -47,8 +70,13 @@ export async function POST(req: NextRequest) {
   try { user = await requireAuth() } catch { return new Response("No autorizado", { status: 401 }) }
 
   const body = await req.json()
-  const { messages, conversationId: incomingConvId } = body
+  const { messages, conversationId: incomingConvId, attachment } = body as {
+    messages: any[]; conversationId?: string; attachment?: Attachment // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
   if (!messages || !Array.isArray(messages)) return new Response("Mensajes invalidos", { status: 400 })
+  if (attachment?.data && attachment.data.length > MAX_ATTACHMENT_B64) {
+    return Response.json({ error: "attachment_too_large", message: "El documento es muy grande (máx ~10MB)." }, { status: 413 })
+  }
 
   const supabase = await createClient()
   const sb = supabase as any
@@ -68,7 +96,8 @@ export async function POST(req: NextRequest) {
   }
   const userMsg = messages[messages.length - 1]
   if (conversationId && userMsg?.role === "user") {
-    sb.from("ai_messages").insert({ conversation_id: conversationId, role: "user", content: userMsg.content }).then(() => {})
+    const stored = attachment?.name ? `${userMsg.content || ""}\n\n📎 ${attachment.name}`.trim() : userMsg.content
+    sb.from("ai_messages").insert({ conversation_id: conversationId, role: "user", content: stored }).then(() => {})
   }
 
   const { bizName, ctx } = await getBriefContext(sb)
@@ -84,11 +113,16 @@ REGLAS DE OPERACIÓN:
 - NUNCA inventes IDs. Antes de editar o eliminar, usá find_records para encontrar el registro y su id real. Antes de crear algo que podría existir, chequeá con find_records para no duplicar.
 - Si el usuario pide varias cosas, podés proponer varias acciones juntas.
 - Si falta un dato obligatorio (ej: el nombre de un lead), pedíselo en vez de inventarlo.
+- Si el usuario adjunta un documento (PDF, imagen, planilla, etc.), leelo, extraé la info estructurada y proponé las acciones para cargarla (un create_record por cada registro detectado). Si algo es ambiguo, preguntá antes de proponer.
 - Respondé en español rioplatense (vos/tenés/podés), directo y accionable.
 - Fecha de hoy: ${today}.`
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const convo: any[] = messages.map((m: any) => ({ role: m.role, content: m.content }))
+  if (attachment?.data && convo.length > 0) {
+    const last = convo[convo.length - 1]
+    if (last.role === "user") last.content = buildUserContent(userMsg?.content ?? "", attachment)
+  }
   const proposals: Proposal[] = []
   let finalText = ""
   let totalTokens = 0
