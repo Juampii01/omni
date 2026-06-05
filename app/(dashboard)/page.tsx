@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   TrendingUp, TrendingDown, Users, CheckSquare,
   Sparkles, BarChart2, GitBranch, AlertTriangle,
-  Pin, ArrowRight, DollarSign,
+  Pin, ArrowRight, DollarSign, Clock, Send, Flame,
 } from "lucide-react"
 
 export const metadata = { title: "Overview" }
@@ -57,6 +57,8 @@ export default async function OverviewPage() {
   const supabase = await createClient()
   const sb = supabase as any
 
+  const todayISO = new Date().toISOString().slice(0, 10)
+
   const [
     { data: rawSettings },
     { data: kpiMrr },
@@ -65,6 +67,9 @@ export default async function OverviewPage() {
     { count: tasksCount },
     { data: announcements },
     { data: urgentTasks },
+    { data: newLeads },
+    { data: overdueTasks },
+    { count: proposalCount },
   ] = await Promise.all([
     sb.from("client_settings").select("business_name, ai_credits_used, ai_credits_limit").single(),
     sb.from("kpis").select("metric_value, period_month").eq("metric_name", "MRR").order("period_month", { ascending: false }).limit(2),
@@ -73,6 +78,9 @@ export default async function OverviewPage() {
     sb.from("tasks").select("id", { count: "exact", head: true }).is("deleted_at", null).in("status", ["todo", "in_progress"]),
     sb.from("announcements").select("id, title, body, is_pinned, created_at").eq("is_pinned", true).order("created_at", { ascending: false }).limit(3),
     sb.from("tasks").select("id, title, priority, status, due_date").is("deleted_at", null).in("status", ["todo", "in_progress"]).in("priority", ["urgent", "high"]).order("priority", { ascending: true }).limit(5),
+    sb.from("leads").select("id, full_name, created_at").is("deleted_at", null).eq("stage", "new").order("created_at", { ascending: true }).limit(6),
+    sb.from("tasks").select("id, title, due_date").is("deleted_at", null).in("status", ["todo", "in_progress"]).lt("due_date", todayISO).order("due_date", { ascending: true }).limit(6),
+    sb.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("stage", "proposal_sent"),
   ])
 
   const settings = rawSettings as { business_name: string; ai_credits_used: number; ai_credits_limit: number } | null
@@ -99,6 +107,99 @@ export default async function OverviewPage() {
   })
   const todayCapitalized = today.charAt(0).toUpperCase() + today.slice(1)
 
+  // ── Omni Intelligence: "Qué hacer hoy" ────────────────────────────────────
+  // Señales reales del negocio → acciones priorizadas (determinístico, sin costo IA).
+  const overdue = (overdueTasks ?? []) as { id: string; title: string; due_date: string }[]
+  const freshLeads = (newLeads ?? []) as { id: string; full_name: string; created_at: string }[]
+  const urgentNow = (urgentTasks ?? []) as { id: string; priority: string }[]
+  const proposalsOpen = proposalCount ?? 0
+
+  const daysAgo = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+
+  type BriefAction = {
+    sev: "urgent" | "high" | "medium"
+    icon: React.ComponentType<{ className?: string }>
+    title: string
+    detail?: string
+    href: string
+  }
+  const actions: BriefAction[] = []
+
+  if (overdue.length > 0) {
+    actions.push({
+      sev: "urgent",
+      icon: Clock,
+      title: `${overdue.length} ${overdue.length === 1 ? "tarea vencida" : "tareas vencidas"}`,
+      detail: `La más atrasada: «${overdue[0].title}»`,
+      href: "/tasks",
+    })
+  }
+  if (freshLeads.length > 0) {
+    const oldest = freshLeads[0]
+    const d = daysAgo(oldest.created_at)
+    actions.push({
+      sev: "high",
+      icon: Send,
+      title: `${freshLeads.length} ${freshLeads.length === 1 ? "lead nuevo sin contactar" : "leads nuevos sin contactar"}`,
+      detail: `El más antiguo: ${oldest.full_name}${d > 0 ? ` · hace ${d}d` : " · hoy"}`,
+      href: "/crm",
+    })
+  }
+  const urgentPending = urgentNow.length
+  if (urgentPending > 0) {
+    actions.push({
+      sev: "high",
+      icon: Flame,
+      title: `${urgentPending} ${urgentPending === 1 ? "tarea de prioridad alta" : "tareas de prioridad alta"} para hoy`,
+      href: "/tasks",
+    })
+  }
+  if (proposalsOpen > 0) {
+    actions.push({
+      sev: "medium",
+      icon: GitBranch,
+      title: `${proposalsOpen} ${proposalsOpen === 1 ? "propuesta esperando" : "propuestas esperando"} respuesta`,
+      detail: "Hacé seguimiento antes de que se enfríen",
+      href: "/crm",
+    })
+  }
+  if (mrrGrowth !== null && mrrGrowth < 0) {
+    actions.push({
+      sev: "medium",
+      icon: TrendingDown,
+      title: `El MRR cayó ${Math.abs(mrrGrowth)}% vs el mes anterior`,
+      detail: "Revisá churn y pipeline de cierre",
+      href: "/kpis",
+    })
+  }
+
+  const topActions = actions.slice(0, 4)
+  const allClear = topActions.length === 0
+  const briefHeadline = allClear
+    ? "Todo al día. No hay pendientes críticos."
+    : topActions[0].sev === "urgent"
+      ? "Arrancá por lo urgente."
+      : "Tu día, en foco."
+
+  // Narrativa breve a partir de las señales.
+  const bits: string[] = []
+  if (overdue.length) bits.push(`${overdue.length} ${overdue.length === 1 ? "tarea vencida" : "tareas vencidas"}`)
+  if (freshLeads.length) bits.push(`${freshLeads.length} ${freshLeads.length === 1 ? "lead sin contactar" : "leads sin contactar"}`)
+  if (proposalsOpen) bits.push(`${proposalsOpen} ${proposalsOpen === 1 ? "propuesta abierta" : "propuestas abiertas"}`)
+  const briefNarrative = allClear
+    ? "Revisé tus tareas, leads y KPIs: no encontré nada que requiera tu atención inmediata. Buen momento para trabajar en estrategia o contenido."
+    : `Hoy tenés ${bits.length > 1 ? bits.slice(0, -1).join(", ") + " y " + bits.slice(-1) : bits[0]}. ${topActions[0].sev === "urgent" ? "Empezá por las tareas vencidas." : "Priorizá lo de arriba y delegá el resto."}`
+
+  const aiPrompt = encodeURIComponent(
+    "Analizá mi negocio hoy (pipeline, tareas y KPIs) y dame un plan de acción concreto y priorizado para las próximas horas.",
+  )
+
+  const SEV_DOT: Record<BriefAction["sev"], string> = {
+    urgent: "bg-red-500",
+    high: "bg-orange-400",
+    medium: "bg-brand",
+  }
+
   return (
     <div className="space-y-8">
 
@@ -110,6 +211,64 @@ export default async function OverviewPage() {
         <p className="text-sm text-muted-foreground">
           {todayCapitalized} &middot; {businessName}
         </p>
+      </div>
+
+      {/* ── Omni Intelligence: Qué hacer hoy ──────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-brand/25 bg-gradient-to-br from-brand/[0.08] via-card to-card p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand/10 blur-3xl" />
+        <div className="relative flex items-start gap-4">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-[0_0_20px_hsl(var(--brand)/0.45)]">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand font-sans">
+                Omni Intelligence
+              </span>
+              <span className="text-[10px] text-muted-foreground/50">·</span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground/60 font-sans">
+                Qué hacer hoy
+              </span>
+            </div>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-foreground">{briefHeadline}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{briefNarrative}</p>
+
+            {topActions.length > 0 && (
+              <ul className="mt-4 space-y-1.5">
+                {topActions.map((a, i) => {
+                  const Icon = a.icon
+                  return (
+                    <li key={i}>
+                      <Link
+                        href={a.href}
+                        className="group flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 -mx-1 transition-colors hover:border-border hover:bg-muted/40"
+                      >
+                        <span className={cn("h-1.5 w-1.5 flex-shrink-0 rounded-full", SEV_DOT[a.sev])} />
+                        <Icon className="h-4 w-4 flex-shrink-0 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-foreground leading-snug">{a.title}</span>
+                          {a.detail && (
+                            <span className="block text-xs text-muted-foreground leading-snug truncate">{a.detail}</span>
+                          )}
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/40 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            <Link
+              href={`/ai?q=${aiPrompt}`}
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand-hover transition-colors font-sans"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Profundizá con la IA
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* ── KPI metric cards ──────────────────────────────────────── */}

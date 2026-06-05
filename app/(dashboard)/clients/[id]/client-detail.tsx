@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ClientConversation } from "./client-conversation"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -207,18 +208,34 @@ function ContactDialog({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+type ClientMessage = {
+  id: string
+  client_id: string
+  sender_id: string | null
+  direction: "outbound" | "inbound"
+  body: string
+  created_at: string
+}
+type ConvProfile = { id: string; full_name: string | null; email: string; avatar_url: string | null }
+
 export function ClientDetail({
   client,
   contacts: initialContacts,
   revenue,
   tasks,
   allClients,
+  messages,
+  profiles,
+  currentUserId,
 }: {
   client: AnyClient
   contacts: Contact[]
   revenue: RevenueRecord[]
   tasks: Task[]
   allClients: AnyClient[]
+  messages: ClientMessage[]
+  profiles: ConvProfile[]
+  currentUserId: string
 }) {
   const router = useRouter()
   const [contacts, setContacts] = useState<Contact[]>(initialContacts)
@@ -580,6 +597,16 @@ export function ClientDetail({
           </div>
         </div>
       </div>
+
+      {/* Conversación con el cliente */}
+      <ClientConversation
+        clientId={client.id}
+        clientName={client.full_name}
+        clientAvatar={client.avatar_url}
+        currentUserId={currentUserId}
+        initialMessages={messages}
+        profiles={profiles}
+      />
 
       {/* Dialogs */}
       <ContactDialog

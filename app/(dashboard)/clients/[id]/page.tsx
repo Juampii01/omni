@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAuth()
+  const user = await requireAuth()
   const { id } = await params
   const supabase = await createClient()
   const sb = supabase as any
@@ -24,6 +24,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { data: contacts },
     { data: revenue },
     { data: allClients },
+    { data: messages },
+    { data: profiles },
   ] = await Promise.all([
     sb.from("clients").select("*").eq("id", id).single(),
     sb.from("contacts").select("*").eq("client_id", id).order("is_primary", { ascending: false }),
@@ -33,6 +35,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .order("period_month", { ascending: false })
       .limit(12),
     sb.from("clients").select("id, full_name, parent_client_id").order("full_name"),
+    sb.from("client_messages")
+      .select("id, client_id, sender_id, direction, body, created_at")
+      .eq("client_id", id)
+      .order("created_at", { ascending: true })
+      .limit(200),
+    sb.from("profiles").select("id, full_name, email, avatar_url").eq("is_active", true),
   ])
 
   if (!client) notFound()
@@ -54,6 +62,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       revenue={(revenue as any[]) ?? []}
       tasks={(tasks as any[]) ?? []}
       allClients={(allClients as any[]) ?? []}
+      messages={(messages as any[]) ?? []}
+      profiles={(profiles as any[]) ?? []}
+      currentUserId={user.id}
     />
   )
 }

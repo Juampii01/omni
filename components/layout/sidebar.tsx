@@ -17,6 +17,9 @@ import {
   Instagram,
   Contact,
   Gauge,
+  Sparkles,
+  MessageCircle,
+  MessagesSquare,
 } from "lucide-react"
 import { UserMenu } from "./user-menu"
 
@@ -24,33 +27,36 @@ const NAV_SECTIONS = [
   {
     section: null,
     items: [
-      { label: "Home",           href: "/",             icon: LayoutDashboard },
-      { label: "Inteligencia",   href: "/research",     icon: BrainCircuit },
-      { label: "Clientes",       href: "/clients",      icon: Users },
-      { label: "Leads",          href: "/crm",          icon: Contact },
-      { label: "Métricas",       href: "/metrics",      icon: BarChart2 },
-      { label: "KPIs",           href: "/kpis",         icon: Gauge },
+      { label: "Hoy",              href: "/",        icon: LayoutDashboard },
+      { label: "Omni Intelligence", href: "/ai",     icon: Sparkles },
     ],
   },
   {
-    section: "Operaciones",
+    section: "Operación",
     items: [
+      { label: "Clientes",       href: "/clients",       icon: Users },
+      { label: "Conversaciones", href: "/conversations", icon: MessageCircle },
+      { label: "Leads",          href: "/crm",           icon: Contact },
+    ],
+  },
+  {
+    section: "Equipo",
+    items: [
+      { label: "Chat interno",   href: "/chat",         icon: MessagesSquare },
       { label: "Tareas",         href: "/tasks",        icon: CheckSquare },
       { label: "Equipo",         href: "/team",         icon: UserCog },
-      { label: "Contenido",      href: "/content",      icon: FileEdit },
-    ],
-  },
-  {
-    section: "Social",
-    items: [
-      { label: "Instagram",      href: "/socials/instagram", icon: Instagram },
     ],
   },
   {
     section: "Crecimiento",
     items: [
-      { label: "Estrategia",     href: "/strategy",     icon: Target },
+      { label: "Métricas",       href: "/metrics",      icon: BarChart2 },
+      { label: "KPIs",           href: "/kpis",         icon: Gauge },
+      { label: "Contenido",      href: "/content",      icon: FileEdit },
+      { label: "Instagram",      href: "/socials/instagram", icon: Instagram },
       { label: "Automatizaciones", href: "/automations", icon: Zap },
+      { label: "Estrategia",     href: "/strategy",     icon: Target },
+      { label: "Investigación",  href: "/research",     icon: BrainCircuit },
     ],
   },
 ]

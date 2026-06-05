@@ -151,6 +151,15 @@ export default function AiPage() {
 
   useEffect(() => { document.title = "IA Asistente - Omni" }, [])
 
+  // Prefill desde el deep-link del home ("Profundizá con la IA")
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q")
+    if (q) {
+      setInput(q)
+      textareaRef.current?.focus()
+    }
+  }, [])
+
   // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current
