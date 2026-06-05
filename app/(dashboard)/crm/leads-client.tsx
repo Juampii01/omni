@@ -206,7 +206,7 @@ function LeadDialog({ open, editing, profiles, departments, onClose, onSaved }: 
 
 // ── Stage summary bar ─────────────────────────────────────────────────────────
 function StageSummary({ leads }: { leads: Lead[] }) {
-  const stages: LeadStage[] = ["new", "qualified", "meeting_scheduled", "meeting_done", "proposal_sent", "negotiation", "won", "lost"]
+  const stages: LeadStage[] = ["new", "contacted", "qualified", "call_scheduled", "call_done", "proposal_sent", "won", "lost"]
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
       {stages.map(stage => {

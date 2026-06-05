@@ -140,7 +140,7 @@ export type Database = {
           phone: string | null
           source: string | null
           origin_angle: string | null
-          stage: "new" | "qualified" | "meeting_scheduled" | "meeting_done" | "proposal_sent" | "negotiation" | "won" | "lost"
+          stage: "new" | "contacted" | "qualified" | "call_scheduled" | "call_done" | "proposal_sent" | "won" | "lost"
           amount: number
           expected_close_date: string | null
           closed_at: string | null
@@ -160,7 +160,7 @@ export type Database = {
           phone?: string | null
           source?: string | null
           origin_angle?: string | null
-          stage?: "new" | "qualified" | "meeting_scheduled" | "meeting_done" | "proposal_sent" | "negotiation" | "won" | "lost"
+          stage?: "new" | "contacted" | "qualified" | "call_scheduled" | "call_done" | "proposal_sent" | "won" | "lost"
           amount?: number
           expected_close_date?: string | null
           closed_at?: string | null

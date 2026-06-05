@@ -68,9 +68,9 @@ const INTERNAL_EVENT_CONFIG = {
 }
 
 const STAGE_TO_TYPE: Record<string, InternalEvent["type"]> = {
-  meeting_scheduled: "meeting", meeting_done: "meeting",
-  proposal_sent: "proposal", negotiation: "negotiation",
-  qualified: "proposal", new: "task_low",
+  call_scheduled: "meeting", call_done: "meeting",
+  proposal_sent: "negotiation", qualified: "proposal",
+  new: "task_low", contacted: "task_low",
 }
 
 const PRIORITY_TO_TYPE: Record<string, InternalEvent["type"]> = {

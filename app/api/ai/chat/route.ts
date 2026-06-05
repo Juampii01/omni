@@ -34,14 +34,14 @@ async function getDashboardContext(supabase: Awaited<ReturnType<typeof createCli
   const kpis:  any[] = kpisRes.data ?? []
 
   const STAGE_LABELS: Record<string, string> = {
-    new:               "Nuevos",
-    qualified:         "Calificados",
-    meeting_scheduled: "Reunion agendada",
-    meeting_done:      "Reunion realizada",
-    proposal_sent:     "Propuesta enviada",
-    negotiation:       "Negociacion",
-    won:               "Cerrados (Won)",
-    lost:              "Perdidos",
+    new:             "Nuevos",
+    contacted:       "Contactados",
+    qualified:       "Calificados",
+    call_scheduled:  "Llamada agendada",
+    call_done:       "Llamada hecha",
+    proposal_sent:   "Propuesta enviada",
+    won:             "Cerrados (Won)",
+    lost:            "Perdidos",
   }
 
   const byStage: Record<string, { count: number; value: number }> = {}

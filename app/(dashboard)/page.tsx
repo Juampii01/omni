@@ -29,14 +29,16 @@ function formatDate(dateStr: string): string {
 
 const STAGE_LABEL: Record<string, string> = {
   new: "Nuevo",
+  contacted: "Contactado",
   qualified: "Calificado",
-  meeting_scheduled: "Reunión agendada",
-  meeting_done: "Reunión hecha",
+  call_scheduled: "Llamada agendada",
+  call_done: "Llamada hecha",
   proposal_sent: "Propuesta enviada",
-  negotiation: "Negociación",
   won: "Ganado",
   lost: "Perdido",
 }
+
+const ACTIVE_STAGES = ["new", "contacted", "qualified", "call_scheduled", "call_done", "proposal_sent"]
 
 const PRIORITY_COLOR: Record<string, string> = {
   urgent: "text-red-500 dark:text-red-400",
@@ -74,7 +76,7 @@ export default async function OverviewPage() {
     sb.from("client_settings").select("business_name, ai_credits_used, ai_credits_limit").single(),
     sb.from("kpis").select("metric_value, period_month").eq("metric_name", "MRR").order("period_month", { ascending: false }).limit(2),
     sb.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("stage", "won"),
-    sb.from("leads").select("id, full_name, stage, amount, created_at").is("deleted_at", null).in("stage", ["new", "qualified", "meeting_scheduled", "meeting_done", "proposal_sent", "negotiation"]).order("amount", { ascending: false }).limit(6),
+    sb.from("leads").select("id, full_name, stage, amount, created_at").is("deleted_at", null).in("stage", ACTIVE_STAGES).order("amount", { ascending: false }).limit(6),
     sb.from("tasks").select("id", { count: "exact", head: true }).is("deleted_at", null).in("status", ["todo", "in_progress"]),
     sb.from("announcements").select("id, title, body, is_pinned, created_at").eq("is_pinned", true).order("created_at", { ascending: false }).limit(3),
     sb.from("tasks").select("id, title, priority, status, due_date").is("deleted_at", null).in("status", ["todo", "in_progress"]).in("priority", ["urgent", "high"]).order("priority", { ascending: true }).limit(5),

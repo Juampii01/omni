@@ -16,34 +16,39 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 // ── Lead stages ──────────────────────────────────────────────────────────────
 export const LEAD_STAGES = [
   "new",
+  "contacted",
   "qualified",
-  "meeting_scheduled",
-  "meeting_done",
+  "call_scheduled",
+  "call_done",
   "proposal_sent",
-  "negotiation",
   "won",
   "lost",
 ] as const
 export type LeadStage = (typeof LEAD_STAGES)[number]
 
+// Etapas activas del pipeline (excluye won/lost) — útil para filtros.
+export const ACTIVE_LEAD_STAGES: LeadStage[] = [
+  "new", "contacted", "qualified", "call_scheduled", "call_done", "proposal_sent",
+]
+
 export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
   new: "Nuevo",
+  contacted: "Contactado",
   qualified: "Calificado",
-  meeting_scheduled: "Reunión agendada",
-  meeting_done: "Reunión realizada",
+  call_scheduled: "Llamada agendada",
+  call_done: "Llamada hecha",
   proposal_sent: "Propuesta enviada",
-  negotiation: "Negociación",
   won: "Cerrado",
   lost: "Perdido",
 }
 
 export const LEAD_STAGE_COLORS: Record<LeadStage, string> = {
   new: "bg-secondary text-secondary-foreground",
+  contacted: "bg-sky-50 text-sky-700",
   qualified: "bg-blue-50 text-blue-700",
-  meeting_scheduled: "bg-amber-50 text-amber-700",
-  meeting_done: "bg-purple-50 text-purple-700",
+  call_scheduled: "bg-amber-50 text-amber-700",
+  call_done: "bg-purple-50 text-purple-700",
   proposal_sent: "bg-orange-50 text-orange-700",
-  negotiation: "bg-yellow-50 text-yellow-700",
   won: "bg-green-50 text-green-700",
   lost: "bg-red-50 text-red-700",
 }
