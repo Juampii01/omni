@@ -367,12 +367,43 @@ export async function createImageContainer(
   if (caption && !isCarouselItem) body.caption = caption
   if (isCarouselItem) body.is_carousel_item = "true"
 
-  const r = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
+  void igUserId
+  const r = await fetch(`${IG_GRAPH}/me/media`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams(body),
   })
-  if (!r.ok) throw new Error(`createImageContainer failed: ${await r.text()}`)
+  if (!r.ok) {
+    const t = await r.text()
+    console.error(`createImageContainer failed: ${r.status} ${t}`)
+    throw new Error(t)
+  }
+  const data = await r.json()
+  return data.id as string
+}
+
+/** Item de carrusel tipo VIDEO (media_type=VIDEO + is_carousel_item, NO REELS). */
+export async function createCarouselVideoItem(
+  igUserId: string,
+  token: string,
+  videoUrl: string,
+): Promise<string> {
+  void igUserId
+  const r = await fetch(`${IG_GRAPH}/me/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      media_type: "VIDEO",
+      video_url: videoUrl,
+      is_carousel_item: "true",
+      access_token: token,
+    }),
+  })
+  if (!r.ok) {
+    const t = await r.text()
+    console.error(`createCarouselVideoItem failed: ${r.status} ${t}`)
+    throw new Error(t)
+  }
   const data = await r.json()
   return data.id as string
 }
@@ -393,12 +424,17 @@ export async function createReelContainer(
   if (caption)  body.caption   = caption
   if (coverUrl) body.cover_url = coverUrl
 
-  const r = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
+  void igUserId
+  const r = await fetch(`${IG_GRAPH}/me/media`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams(body),
   })
-  if (!r.ok) throw new Error(`createReelContainer failed: ${await r.text()}`)
+  if (!r.ok) {
+    const t = await r.text()
+    console.error(`createReelContainer failed: ${r.status} ${t}`)
+    throw new Error(t)
+  }
   const data = await r.json()
   return data.id as string
 }
@@ -417,12 +453,17 @@ export async function createCarouselContainer(
   }
   if (caption) body.caption = caption
 
-  const r = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
+  void igUserId
+  const r = await fetch(`${IG_GRAPH}/me/media`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body:    new URLSearchParams(body),
   })
-  if (!r.ok) throw new Error(`createCarouselContainer failed: ${await r.text()}`)
+  if (!r.ok) {
+    const t = await r.text()
+    console.error(`createCarouselContainer failed: ${r.status} ${t}`)
+    throw new Error(t)
+  }
   const data = await r.json()
   return data.id as string
 }
@@ -438,14 +479,47 @@ export async function publishContainer(
     access_token: token,
   })
 
-  const r = await fetch(`${IG_GRAPH}/${igUserId}/media_publish`, {
+  void igUserId
+  const r = await fetch(`${IG_GRAPH}/me/media_publish`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   })
-  if (!r.ok) throw new Error(`publishContainer failed: ${await r.text()}`)
+  if (!r.ok) {
+    const t = await r.text()
+    console.error(`publishContainer failed: ${r.status} ${t}`)
+    throw new Error(t)
+  }
   const data = await r.json()
   return data.id as string
+}
+
+/** Límite real de publicación: GET /me/content_publishing_limit (duro: 100/24h). */
+export async function getContentPublishingLimit(
+  token: string,
+): Promise<{ quota_usage: number; quota_total: number } | null> {
+  const url = new URL(`${IG_GRAPH}/me/content_publishing_limit`)
+  url.searchParams.set("fields", "config,quota_usage")
+  url.searchParams.set("access_token", token)
+  const r = await fetch(url.toString(), { next: { revalidate: 0 } })
+  const body = await r.text()
+  if (!r.ok) {
+    console.error(`getContentPublishingLimit failed: ${r.status} ${body}`)
+    return null
+  }
+  try {
+    const json = JSON.parse(body) as {
+      data?: Array<{ quota_usage?: number; config?: { quota_total?: number } }>
+    }
+    const row = json.data?.[0]
+    return {
+      quota_usage: row?.quota_usage ?? 0,
+      quota_total: row?.config?.quota_total ?? 100,
+    }
+  } catch {
+    console.error(`getContentPublishingLimit JSON inválido: ${body}`)
+    return null
+  }
 }
 
 /** Check container status (for async video processing). */
