@@ -12,7 +12,6 @@ import {
   UserCog,
   FileEdit,
   Target,
-  Rocket,
   Zap,
   Settings,
   Instagram,
@@ -47,7 +46,6 @@ const NAV_SECTIONS = [
     section: "Crecimiento",
     items: [
       { label: "Estrategia",     href: "/strategy",     icon: Target },
-      { label: "Lanzamientos",   href: "/launches",     icon: Rocket },
       { label: "Automatizaciones", href: "/automations", icon: Zap },
     ],
   },
