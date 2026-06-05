@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   Compass, Package, Target, Rocket, LineChart, Flag,
-  Plus, X, Save, Loader2, Check,
+  Plus, X, Save, Loader2, Check, Workflow, ChevronDown,
 } from "lucide-react"
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
@@ -15,6 +15,8 @@ type OKR = { objective: string; metric: string; target: string; current: string;
 type Growth = { channel: string; focus: string; status: string }
 type Initiative = { title: string; description: string; priority: "P1" | "P2" | "P3"; status: string }
 type Forecast = { target_mrr: string; target_clients: string; horizon_months: number; notes: string }
+type Stage = { n: string; title: string; tag: string; points: string[] }
+type Playbook = { thesis: string; repair_order: string[]; stages: Stage[]; checklist: string[] }
 
 type Strategy = {
   mission: string
@@ -25,6 +27,7 @@ type Strategy = {
   okrs: OKR[]
   growth: Growth[]
   forecast: Forecast
+  playbook: Playbook
   initiatives: Initiative[]
 }
 
@@ -32,7 +35,10 @@ const EMPTY: Strategy = {
   mission: "", vision: "", core_values: [], positioning: "",
   tiers: [], okrs: [], growth: [], initiatives: [],
   forecast: { target_mrr: "", target_clients: "", horizon_months: 12, notes: "" },
+  playbook: { thesis: "", repair_order: [], stages: [], checklist: [] },
 }
+
+const BLANK_STAGE: Stage = { n: "", title: "", tag: "", points: [] }
 
 const BLANK_TIER: Tier = { name: "", price: "", value_prop: "", features: [] }
 const BLANK_OKR: OKR = { objective: "", metric: "", target: "", current: "", period: "", status: "en curso" }
@@ -122,6 +128,7 @@ export function StrategyClient({ initial, canEdit }: { initial: Partial<Strategy
     ...EMPTY,
     ...(initial ?? {}),
     forecast: { ...EMPTY.forecast, ...(initial?.forecast ?? {}) },
+    playbook: { ...EMPTY.playbook, ...(initial?.playbook ?? {}) },
     core_values: initial?.core_values ?? [],
     tiers: initial?.tiers ?? [],
     okrs: initial?.okrs ?? [],
@@ -131,10 +138,12 @@ export function StrategyClient({ initial, canEdit }: { initial: Partial<Strategy
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [openStage, setOpenStage] = useState<number | null>(0)
 
   const ro = !canEdit
   function patch(p: Partial<Strategy>) { setData((d) => ({ ...d, ...p })); setDirty(true); setSaved(false) }
   function patchForecast(p: Partial<Forecast>) { patch({ forecast: { ...data.forecast, ...p } }) }
+  function patchPlaybook(p: Partial<Playbook>) { patch({ playbook: { ...data.playbook, ...p } }) }
 
   async function save() {
     if (saving) return
@@ -144,7 +153,8 @@ export function StrategyClient({ initial, canEdit }: { initial: Partial<Strategy
       .from("business_strategy")
       .update({
         mission: data.mission, vision: data.vision, core_values: data.core_values, positioning: data.positioning,
-        tiers: data.tiers, okrs: data.okrs, growth: data.growth, forecast: data.forecast, initiatives: data.initiatives,
+        tiers: data.tiers, okrs: data.okrs, growth: data.growth, forecast: data.forecast,
+        playbook: data.playbook, initiatives: data.initiatives,
         updated_at: new Date().toISOString(),
       })
       .eq("singleton", true)
@@ -271,6 +281,98 @@ export function StrategyClient({ initial, canEdit }: { initial: Partial<Strategy
               </div>
             )
           })}
+        </div>
+      </Section>
+
+      {/* 4.5 · Metodología de crecimiento (Playbook) */}
+      <Section icon={Workflow} title="Metodología de crecimiento" desc="El sistema de adquisición de KAVAR"
+        action={!ro && <AddBtn label="Etapa" onClick={() => patch({ playbook: { ...data.playbook, stages: [...data.playbook.stages, { ...BLANK_STAGE }] } })} />}>
+        {/* Tesis */}
+        <div className="rounded-xl border border-brand/25 bg-brand/[0.06] p-4">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-brand font-sans">La tesis</span>
+          <textarea
+            className="w-full mt-1.5 bg-transparent border-0 outline-none resize-none text-sm text-foreground placeholder:text-muted-foreground/50 font-sans"
+            rows={3} disabled={ro} value={data.playbook.thesis}
+            onChange={(e) => patchPlaybook({ thesis: e.target.value })}
+            placeholder="La jugada central del negocio"
+          />
+        </div>
+
+        {/* Orden de reparación */}
+        <div>
+          <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2 font-sans">Orden de reparación</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {data.playbook.repair_order.map((r, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  className="w-36 rounded-md bg-muted/50 border border-border px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-brand/50 font-sans"
+                  disabled={ro} value={r}
+                  onChange={(e) => { const a = [...data.playbook.repair_order]; a[i] = e.target.value; patchPlaybook({ repair_order: a }) }}
+                  placeholder="Fase"
+                />
+                {!ro && <RemoveBtn onClick={() => patchPlaybook({ repair_order: data.playbook.repair_order.filter((_, j) => j !== i) })} />}
+                {i < data.playbook.repair_order.length - 1 && <span className="text-muted-foreground/60">→</span>}
+              </div>
+            ))}
+            {!ro && <AddBtn label="Fase" onClick={() => patchPlaybook({ repair_order: [...data.playbook.repair_order, ""] })} />}
+          </div>
+        </div>
+
+        {/* Etapas (accordion) */}
+        <div className="space-y-2">
+          {data.playbook.stages.map((s, i) => {
+            const open = openStage === i
+            const upd = (p: Partial<Stage>) => { const a = [...data.playbook.stages]; a[i] = { ...a[i], ...p }; patchPlaybook({ stages: a }) }
+            return (
+              <div key={i} className="rounded-xl border border-border overflow-hidden">
+                <button onClick={() => setOpenStage(open ? null : i)} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
+                  <span className="font-mono text-xs text-brand flex-shrink-0">{s.n || "—"}</span>
+                  <span className="text-sm font-medium text-foreground flex-1 truncate">{s.title || "Etapa sin título"}</span>
+                  <span className="text-[11px] text-muted-foreground hidden sm:block truncate max-w-[40%]">{s.tag}</span>
+                  <ChevronDown className={cn("h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform", open && "rotate-180")} />
+                </button>
+                {open && (
+                  <div className="px-4 pb-4 pt-2 space-y-2.5 border-t border-border">
+                    {!ro && (
+                      <div className="grid grid-cols-[60px_1fr_1fr] gap-2">
+                        <input className={cn(inputCls, "py-1.5 text-xs text-center font-mono")} disabled={ro} value={s.n} onChange={(e) => upd({ n: e.target.value })} placeholder="01" />
+                        <input className={cn(inputCls, "py-1.5 text-xs font-medium")} disabled={ro} value={s.title} onChange={(e) => upd({ title: e.target.value })} placeholder="Título" />
+                        <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={s.tag} onChange={(e) => upd({ tag: e.target.value })} placeholder="Etiqueta" />
+                      </div>
+                    )}
+                    {s.points.map((pt, pi) => (
+                      <div key={pi} className="flex items-start gap-2">
+                        <span className="text-brand text-[10px] mt-2 flex-shrink-0">◆</span>
+                        <textarea className={cn(inputCls, "py-1.5 text-xs resize-none")} rows={2} disabled={ro} value={pt} onChange={(e) => { const ps = [...s.points]; ps[pi] = e.target.value; upd({ points: ps }) }} placeholder="Punto clave" />
+                        {!ro && <RemoveBtn onClick={() => upd({ points: s.points.filter((_, j) => j !== pi) })} />}
+                      </div>
+                    ))}
+                    {!ro && (
+                      <div className="flex items-center gap-2">
+                        <AddBtn label="Punto" onClick={() => upd({ points: [...s.points, ""] })} />
+                        <button onClick={() => { patchPlaybook({ stages: data.playbook.stages.filter((_, j) => j !== i) }); setOpenStage(null) }} className="text-xs text-muted-foreground/60 hover:text-destructive transition-colors font-sans">Eliminar etapa</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Checklist de arranque */}
+        <div>
+          <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-2 font-sans">Checklist de arranque</span>
+          <div className="space-y-1.5">
+            {data.playbook.checklist.map((c, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand text-[10px] font-mono mt-1">{i + 1}</span>
+                <input className={cn(inputCls, "py-1.5 text-xs")} disabled={ro} value={c} onChange={(e) => { const a = [...data.playbook.checklist]; a[i] = e.target.value; patchPlaybook({ checklist: a }) }} placeholder={`Paso ${i + 1}`} />
+                {!ro && <RemoveBtn onClick={() => patchPlaybook({ checklist: data.playbook.checklist.filter((_, j) => j !== i) })} />}
+              </div>
+            ))}
+            {!ro && <AddBtn label="Paso" onClick={() => patchPlaybook({ checklist: [...data.playbook.checklist, ""] })} />}
+          </div>
         </div>
       </Section>
 
