@@ -285,6 +285,7 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<TaskStatus | null>(null)
+  const [overTrash, setOverTrash] = useState(false)
 
   function openCreate(status: TaskStatus = "todo") { setEditing(null); setDefaultStatus(status); setDialogOpen(true) }
   function openEdit(t: Task) { setEditing(t); setDialogOpen(true) }
@@ -302,16 +303,24 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
     setConfirmOpen(true)
   }
 
+  async function deleteTask(id: string): Promise<boolean> {
+    const sb = createClient() as any
+    const { error } = await sb.from("tasks").update({ deleted_at: new Date().toISOString() }).eq("id", id)
+    if (error) {
+      toast.error("No se pudo eliminar: " + (error.message || error.code || "error desconocido"))
+      return false
+    }
+    setTasks(prev => prev.filter(t => t.id !== id))
+    toast.success("Tarea eliminada")
+    return true
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return
     const id = deleteTarget
     setConfirmOpen(false)
     setDeleteTarget(null)
-    const sb = createClient() as any
-    const { error } = await sb.from("tasks").update({ deleted_at: new Date().toISOString() }).eq("id", id)
-    if (error) { toast.error("No se pudo eliminar"); return }
-    setTasks(prev => prev.filter(t => t.id !== id))
-    toast.success("Tarea eliminada")
+    await deleteTask(id)
   }
 
   async function handleStatusChange(id: string, status: TaskStatus) {
@@ -447,6 +456,33 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
         description="Esta acción no se puede deshacer."
         onConfirm={handleDelete}
       />
+
+      {/* Zona para arrastrar y eliminar (aparece al arrastrar una tarea) */}
+      {draggingId && (
+        <div
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOverTrash(true) }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverTrash(false) }}
+          onDrop={() => {
+            const id = draggingId
+            setOverTrash(false)
+            setDraggingId(null)
+            setDragOverCol(null)
+            if (id) deleteTask(id)
+          }}
+          className={cn(
+            "fixed left-6 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all",
+            "h-40 w-28 text-center select-none",
+            overTrash
+              ? "border-destructive bg-destructive/15 text-destructive scale-105"
+              : "border-border bg-card/95 text-muted-foreground backdrop-blur",
+          )}
+        >
+          <Trash2 className={cn("h-7 w-7 transition-transform", overTrash && "scale-110")} />
+          <span className="text-xs font-medium px-2 font-sans leading-tight">
+            {overTrash ? "Soltá para eliminar" : "Arrastrá acá para eliminar"}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
