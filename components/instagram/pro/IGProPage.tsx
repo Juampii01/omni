@@ -9,6 +9,7 @@ import { IGStoriesReel } from "./IGStoriesReel"
 import { IGTabNav, type IGTab } from "./IGTabNav"
 import { IGNotConnected } from "./IGNotConnected"
 import { IGOverviewStats } from "./IGOverviewStats"
+import { IGMetricsGrid } from "./IGMetricsGrid"
 import { IGTopContent } from "./IGTopContent"
 import { IGInsightsPanel } from "./IGInsightsPanel"
 import { IGContentGrid } from "./IGContentGrid"
@@ -89,6 +90,7 @@ export function IGProPage() {
             <IGTabErrorBoundary tabName="Inicio">
               <div className="space-y-5">
                 <IGOverviewStats summary={summary} />
+                <IGMetricsGrid reels={reels} />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   <IGTopContent reels={reels} />
                   <IGInsightsPanel reels={reels} />
@@ -105,7 +107,10 @@ export function IGProPage() {
 
           {tab === "audiencia" && (
             <IGTabErrorBoundary tabName="Audiencia">
-              <IGAudiencePanel />
+              <div className="space-y-5">
+                <IGAudiencePanel />
+                <IGMetricsGrid reels={reels} />
+              </div>
             </IGTabErrorBoundary>
           )}
 
