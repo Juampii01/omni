@@ -48,15 +48,25 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    section: "Crecimiento",
+    section: "Marketing",
+    items: [
+      { label: "Contenido",      href: "/content",           icon: FileEdit },
+      { label: "Instagram",      href: "/socials/instagram", icon: Instagram },
+      { label: "Estrategia",     href: "/strategy",          icon: Target },
+    ],
+  },
+  {
+    section: "Datos",
     items: [
       { label: "Métricas",       href: "/metrics",      icon: BarChart2 },
       { label: "KPIs",           href: "/kpis",         icon: Gauge },
-      { label: "Contenido",      href: "/content",      icon: FileEdit },
-      { label: "Instagram",      href: "/socials/instagram", icon: Instagram },
+    ],
+  },
+  {
+    section: "Sistema",
+    items: [
       { label: "Automatizaciones", href: "/automations", icon: Zap },
-      { label: "Estrategia",     href: "/strategy",     icon: Target },
-      { label: "Investigación",  href: "/research",     icon: BrainCircuit },
+      { label: "Investigación",    href: "/research",    icon: BrainCircuit },
     ],
   },
 ]
