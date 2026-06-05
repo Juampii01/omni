@@ -297,11 +297,10 @@ export default function AiPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachment, setAttachment] = useState<Attachment | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const dragDepth = useRef(0)
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ""
-    if (!file) return
+  async function handleFile(file: File) {
     if (file.size > MAX_FILE) { toast.error("El archivo supera 10MB"); return }
     if (file.type.startsWith("image/") && !IMG_TYPES.includes(file.type)) {
       toast.error("Imagen no soportada (usá PNG, JPG, WEBP o GIF)"); return
@@ -311,6 +310,40 @@ export default function AiPage() {
     } catch {
       toast.error("No se pudo leer el archivo")
     }
+  }
+
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (file) handleFile(file)
+  }
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+  function hasFiles(e: React.DragEvent) {
+    return Array.from(e.dataTransfer.types).includes("Files")
+  }
+  function onDragEnter(e: React.DragEvent) {
+    if (!hasFiles(e) || streaming || isLimitReached) return
+    e.preventDefault()
+    dragDepth.current += 1
+    setDragOver(true)
+  }
+  function onDragOver(e: React.DragEvent) {
+    if (hasFiles(e) && !streaming && !isLimitReached) e.preventDefault()
+  }
+  function onDragLeave(e: React.DragEvent) {
+    if (!hasFiles(e)) return
+    dragDepth.current = Math.max(0, dragDepth.current - 1)
+    if (dragDepth.current === 0) setDragOver(false)
+  }
+  function onDrop(e: React.DragEvent) {
+    if (!hasFiles(e)) return
+    e.preventDefault()
+    dragDepth.current = 0
+    setDragOver(false)
+    if (streaming || isLimitReached) return
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFile(file)
   }
 
   const {
@@ -569,7 +602,23 @@ export default function AiPage() {
       </div>
 
       {/* ── Main chat ───────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 pl-6">
+      <div
+        className="relative flex-1 flex flex-col min-w-0 pl-6"
+        onDragEnter={onDragEnter}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {/* Overlay drag & drop */}
+        {dragOver && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-brand bg-background/85 backdrop-blur-sm pointer-events-none">
+            <div className="flex flex-col items-center gap-2 text-brand">
+              <Paperclip className="h-8 w-8" />
+              <p className="text-sm font-semibold font-sans">Soltá el archivo para adjuntarlo</p>
+              <p className="text-xs text-muted-foreground font-sans">PDF, imagen, CSV, TXT, MD, JSON · máx 10MB</p>
+            </div>
+          </div>
+        )}
 
         {/* Top bar */}
         <div className="flex items-center justify-between mb-4 shrink-0">
