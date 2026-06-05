@@ -15,6 +15,8 @@ import {
   Zap,
   Settings,
   Instagram,
+  Contact,
+  Gauge,
 } from "lucide-react"
 import { UserMenu } from "./user-menu"
 
@@ -25,7 +27,9 @@ const NAV_SECTIONS = [
       { label: "Home",           href: "/",             icon: LayoutDashboard },
       { label: "Inteligencia",   href: "/research",     icon: BrainCircuit },
       { label: "Clientes",       href: "/clients",      icon: Users },
+      { label: "Leads",          href: "/crm",          icon: Contact },
       { label: "Métricas",       href: "/metrics",      icon: BarChart2 },
+      { label: "KPIs",           href: "/kpis",         icon: Gauge },
     ],
   },
   {

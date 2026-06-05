@@ -283,7 +283,11 @@ export function LeadsClient({ initialLeads, profiles, departments, pagination }:
     setDeleteTarget(null)
     const sb = createClient() as any
     const { error } = await sb.from("leads").update({ deleted_at: new Date().toISOString() }).eq("id", id)
-    if (error) { toast.error("No se pudo eliminar"); return }
+    if (error) {
+      console.error("delete lead failed:", error)
+      toast.error(`No se pudo eliminar: ${error.message ?? error.code ?? "error desconocido"}`)
+      return
+    }
     setLeads(prev => prev.filter(l => l.id !== id))
     toast.success("Lead eliminado")
   }

@@ -43,7 +43,7 @@ export function DashboardLayout({ children, businessName }: DashboardLayoutProps
         </main>
       </div>
 
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right" closeButton />
       <LiveNotifications />
       <AiChatWidget />
     </div>
