@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import {
   Send, Sparkles, Loader2, RotateCcw, Copy, AlertTriangle,
   Plus, Trash2, MessageSquare, ChevronRight,
+  Check, X, Pencil, PlusCircle, Database,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AiMessage } from "@/components/ai-message"
@@ -18,13 +19,38 @@ import { createClient } from "@/lib/supabase/client"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Message = { role: "user" | "assistant"; content: string }
+type ProposalState = "pending" | "running" | "done" | "error" | "cancelled"
+type Proposal = {
+  id: string
+  op: "create" | "update" | "delete"
+  entity: "lead" | "task" | "client" | "contact" | "kpi" | "announcement"
+  targetId?: string
+  data?: Record<string, unknown>
+  summary: string
+}
+type Message = {
+  role: "user" | "assistant"
+  content: string
+  proposals?: Proposal[]
+  states?: Record<string, ProposalState>
+  errors?: Record<string, string>
+}
+
+const ENTITY_LABEL: Record<Proposal["entity"], string> = {
+  lead: "Lead", task: "Tarea", client: "Cliente", contact: "Contacto", kpi: "KPI", announcement: "Anuncio",
+}
+const OP_META: Record<Proposal["op"], { label: string; icon: typeof Check; cls: string }> = {
+  create: { label: "Crear", icon: PlusCircle, cls: "text-emerald-400" },
+  update: { label: "Editar", icon: Pencil, cls: "text-blue-400" },
+  delete: { label: "Eliminar", icon: Trash2, cls: "text-red-400" },
+}
 
 // ── Suggestions ───────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
+  "Crea un lead llamado Juan Perez, fuente Instagram, monto 1500",
+  "Cargá una tarea urgente: llamar a Ann el viernes",
   "Como esta mi pipeline hoy? Analizalo y decime que hacer",
-  "Resumime los KPIs del mes y decime en que estoy fallando",
   "Que tareas urgentes tengo pendientes?",
   "Dame 3 acciones concretas para mejorar mi tasa de conversion",
   "Escribime un email de seguimiento para un lead que no respondio hace 5 dias",
@@ -122,6 +148,105 @@ function ConversationItem({
         <Trash2 className="h-3 w-3" />
       </button>
     </button>
+  )
+}
+
+// ── Proposal cards (acciones que la IA propone sobre la DB) ─────────────────────
+
+function ProposalCard({
+  proposal, state, error, onConfirm, onCancel, disabled,
+}: {
+  proposal: Proposal
+  state: ProposalState
+  error?: string
+  onConfirm: () => void
+  onCancel: () => void
+  disabled: boolean
+}) {
+  const meta = OP_META[proposal.op]
+  const Icon = meta.icon
+  return (
+    <div className="rounded-xl border border-border bg-card/60 p-3">
+      <div className="flex items-start gap-2.5">
+        <Icon className={cn("h-4 w-4 mt-0.5 flex-shrink-0", meta.cls)} />
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground font-sans">
+            {meta.label} · {ENTITY_LABEL[proposal.entity]}
+          </span>
+          <p className="text-sm text-foreground mt-0.5 leading-snug font-sans">{proposal.summary}</p>
+          {state === "error" && error && <p className="text-xs text-red-400 mt-1 font-sans">{error}</p>}
+        </div>
+        <div className="flex-shrink-0 self-center">
+          {state === "pending" && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onConfirm}
+                disabled={disabled}
+                className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-50 transition-colors font-sans"
+              >
+                <Check className="h-3.5 w-3.5" /> Confirmar
+              </button>
+              <button
+                onClick={onCancel}
+                disabled={disabled}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 transition-colors"
+                title="Descartar"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          {state === "running" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {state === "done" && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-brand font-sans">
+              <Check className="h-3.5 w-3.5" /> Hecho
+            </span>
+          )}
+          {state === "cancelled" && (
+            <span className="text-xs text-muted-foreground/60 font-sans">Descartada</span>
+          )}
+          {state === "error" && (
+            <button
+              onClick={onConfirm}
+              disabled={disabled}
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 disabled:opacity-50 transition-colors font-sans"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reintentar
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProposalList({
+  proposals, states, errors, onConfirm, onCancel, disabled,
+}: {
+  proposals: Proposal[]
+  states?: Record<string, ProposalState>
+  errors?: Record<string, string>
+  onConfirm: (p: Proposal) => void
+  onCancel: (id: string) => void
+  disabled: boolean
+}) {
+  return (
+    <div className="ml-10 mt-2 space-y-2 max-w-2xl">
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-sans">
+        <Database className="h-3 w-3" /> Acciones propuestas — confirmá para ejecutar
+      </div>
+      {proposals.map((p) => (
+        <ProposalCard
+          key={p.id}
+          proposal={p}
+          state={states?.[p.id] ?? "pending"}
+          error={errors?.[p.id]}
+          onConfirm={() => onConfirm(p)}
+          onCancel={() => onCancel(p.id)}
+          disabled={disabled}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -227,18 +352,19 @@ export default function AiPage() {
 
     setInput("")
 
-    const userMsg: Message       = { role: "user", content }
-    const nextMessages: Message[] = [...messages, userMsg]
-    setMessages(nextMessages)
+    const userMsg: Message        = { role: "user", content }
+    const history: Message[]      = [...messages, userMsg]
+    setMessages(history)
     setStreaming(true)
-    // Placeholder for assistant response
-    setMessages(prev => [...prev, { role: "assistant", content: "" }])
 
     try {
-      const res = await fetch("/api/ai/chat", {
+      const res = await fetch("/api/ai/agent", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ messages: nextMessages, conversationId }),
+        body:    JSON.stringify({
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+          conversationId,
+        }),
       })
 
       // Credits exceeded
@@ -252,31 +378,24 @@ export default function AiPage() {
 
       if (!res.ok) throw new Error("Error del servidor")
 
-      // Capture conversation ID
-      const returnedConvId = res.headers.get("X-Conversation-Id")
-      if (returnedConvId) {
-        setConversationId(returnedConvId)
+      const data = (await res.json()) as { text: string; proposals?: Proposal[]; conversationId?: string }
+
+      if (data.conversationId) {
+        setConversationId(data.conversationId)
         if (!conversationId) refreshConversations()
       }
 
-      // Stream chunks
-      const reader  = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let accumulated = ""
+      const hasProposals = (data.proposals?.length ?? 0) > 0
+      const states: Record<string, ProposalState> = {}
+      if (hasProposals) for (const p of data.proposals!) states[p.id] = "pending"
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        accumulated += decoder.decode(value, { stream: true })
-        const final = accumulated
-        setMessages(prev => {
-          const updated = [...prev]
-          updated[updated.length - 1] = { role: "assistant", content: final }
-          return updated
-        })
-      }
+      setMessages(prev => [...prev, {
+        role:      "assistant",
+        content:   data.text || "",
+        proposals: hasProposals ? data.proposals : undefined,
+        states:    hasProposals ? states : undefined,
+      }])
 
-      // Sync credits + conversation sidebar
       refreshCredits()
       refreshConversations()
     } catch {
@@ -287,6 +406,46 @@ export default function AiPage() {
       setTimeout(() => textareaRef.current?.focus(), 100)
     }
   }, [input, messages, streaming, conversationId, isLimitReached, refreshCredits, refreshConversations])
+
+  // ── Proposal confirm / cancel ─────────────────────────────────────────────
+  const setProposalState = useCallback((msgIndex: number, proposalId: string, state: ProposalState, error?: string) => {
+    setMessages(prev => {
+      const next = [...prev]
+      const m = next[msgIndex]
+      if (!m) return prev
+      const states = { ...(m.states ?? {}), [proposalId]: state }
+      const errors = { ...(m.errors ?? {}) }
+      if (error) errors[proposalId] = error
+      else delete errors[proposalId]
+      next[msgIndex] = { ...m, states, errors }
+      return next
+    })
+  }, [])
+
+  const confirmProposal = useCallback(async (msgIndex: number, p: Proposal) => {
+    setProposalState(msgIndex, p.id, "running")
+    try {
+      const res = await fetch("/api/ai/execute", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ proposal: p, conversationId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
+        setProposalState(msgIndex, p.id, "done")
+        toast.success("Acción ejecutada")
+      } else {
+        setProposalState(msgIndex, p.id, "error", data.error ?? "No se pudo ejecutar")
+        toast.error(data.error ?? "No se pudo ejecutar la acción")
+      }
+    } catch {
+      setProposalState(msgIndex, p.id, "error", "Error de red")
+    }
+  }, [conversationId, setProposalState])
+
+  const cancelProposal = useCallback((msgIndex: number, proposalId: string) => {
+    setProposalState(msgIndex, proposalId, "cancelled")
+  }, [setProposalState])
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -385,7 +544,7 @@ export default function AiPage() {
               <div>
                 <p className="text-base font-semibold">En que te ayudo hoy?</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Preguntame cualquier cosa sobre tu negocio
+                  Preguntá sobre tu negocio o pedime que cree, edite o elimine registros
                 </p>
               </div>
               <div className="grid sm:grid-cols-2 gap-2 w-full max-w-2xl">
@@ -404,10 +563,22 @@ export default function AiPage() {
           ) : (
             <div className="space-y-6 pb-4">
               {messages.map((msg, i) => (
-                <MessageBubble key={i} msg={msg} onCopy={copyToClipboard} />
+                <div key={i} className="space-y-2">
+                  <MessageBubble msg={msg} onCopy={copyToClipboard} />
+                  {msg.role === "assistant" && msg.proposals && msg.proposals.length > 0 && (
+                    <ProposalList
+                      proposals={msg.proposals}
+                      states={msg.states}
+                      errors={msg.errors}
+                      onConfirm={(p) => confirmProposal(i, p)}
+                      onCancel={(id) => cancelProposal(i, id)}
+                      disabled={streaming}
+                    />
+                  )}
+                </div>
               ))}
-              {/* Streaming indicator */}
-              {streaming && messages[messages.length - 1]?.content === "" && (
+              {/* Loading indicator */}
+              {streaming && (
                 <div className="flex gap-3">
                   <Avatar className="h-7 w-7 shrink-0">
                     <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
