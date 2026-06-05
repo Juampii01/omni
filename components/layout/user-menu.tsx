@@ -44,7 +44,7 @@ export function UserMenu({ compact }: UserMenuProps) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2.5 w-full rounded-md p-1 hover:bg-white/5 transition-colors outline-none group">
+          <button className="flex items-center gap-2.5 w-full rounded-md p-1 hover:bg-foreground/5 transition-colors outline-none group">
             <Avatar className="h-7 w-7 flex-shrink-0">
               <AvatarImage src={user.avatar_url ?? undefined} />
               <AvatarFallback className="text-[10px] font-bold bg-brand text-brand-foreground">
@@ -93,7 +93,7 @@ export function UserMenu({ compact }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-md p-1 hover:bg-white/5 transition-colors outline-none">
+        <button className="flex items-center gap-2 rounded-md p-1 hover:bg-foreground/5 transition-colors outline-none">
           <Avatar className="h-7 w-7">
             <AvatarImage src={user.avatar_url ?? undefined} />
             <AvatarFallback className="text-xs font-bold bg-brand text-brand-foreground">

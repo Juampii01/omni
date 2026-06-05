@@ -4,61 +4,65 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ── Design System — Omni ────────────────────────────────────────────────── */
-/* Dark-only application. All variables are dark values.                      */
+/* Tema claro en :root · tema oscuro en .dark (gestionado por next-themes).    */
 
 :root {
-  /* ── Brand — Verde Lima ─────────────────────── */
-  --brand:              142 71% 45%;   /* #22c55e */
-  --brand-foreground:   0 0% 4%;      /* near-black text on green */
-  --brand-soft:         142 71% 45% / 0.1;
-  --brand-hover:        142 72% 36%;  /* #16a34a — hover darker */
+  color-scheme: light;
+
+  /* ── Brand — Verde ──────────────────────────── */
+  --brand:              142 70% 36%;   /* verde más profundo para contraste en claro */
+  --brand-foreground:   0 0% 100%;     /* texto blanco sobre verde */
+  --brand-soft:         142 70% 42% / 0.12;
+  --brand-hover:        142 72% 29%;   /* hover más oscuro */
 
   /* ── Backgrounds ────────────────────────────── */
-  --background:         0 0% 3%;      /* #080808 — almost black */
-  --foreground:         0 0% 100%;    /* #ffffff */
-  --card:               0 0% 7%;      /* #111111 */
-  --card-foreground:    0 0% 100%;
-  --popover:            0 0% 10%;     /* #1a1a1a */
-  --popover-foreground: 0 0% 100%;
+  --background:         0 0% 100%;     /* #ffffff */
+  --foreground:         0 0% 9%;       /* #171717 — casi negro */
+  --card:               0 0% 100%;
+  --card-foreground:    0 0% 9%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 0 0% 9%;
 
   /* ── Sidebar ────────────────────────────────── */
-  --sidebar:            0 0% 7%;      /* #111111 — slightly elevated from bg */
-  --sidebar-foreground: 0 0% 90%;
-  --sidebar-border:     0 0% 16%;     /* #2a2a2a */
+  --sidebar:            0 0% 98%;      /* gris muy claro */
+  --sidebar-foreground: 0 0% 25%;
+  --sidebar-border:     0 0% 90%;
 
   /* ── Gray scale ─────────────────────────────── */
-  --muted:              0 0% 10%;     /* #1a1a1a */
-  --muted-foreground:   240 4% 65%;   /* #a1a1aa */
-  --secondary:          0 0% 10%;     /* #1a1a1a */
-  --secondary-foreground: 0 0% 100%;
-  --tertiary:           220 9% 42%;   /* #6b7280 */
+  --muted:              0 0% 96%;      /* #f5f5f5 */
+  --muted-foreground:   240 4% 46%;    /* #71717a */
+  --secondary:          0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --tertiary:           220 9% 46%;
 
   /* ── Borders & inputs ───────────────────────── */
-  --border:             0 0% 16%;     /* #2a2a2a */
-  --input:              0 0% 10%;     /* #1a1a1a */
-  --ring:               142 71% 45%; /* same as brand */
+  --border:             0 0% 90%;      /* #e5e5e5 */
+  --input:              0 0% 92%;
+  --ring:               142 70% 36%;
 
   /* ── Primary (= brand green) ────────────────── */
-  --primary:            142 71% 45%;
-  --primary-foreground: 0 0% 4%;
+  --primary:            142 70% 36%;
+  --primary-foreground: 0 0% 100%;
 
   /* ── Accent ─────────────────────────────────── */
-  --accent:             0 0% 10%;
-  --accent-foreground:  0 0% 100%;
+  --accent:             0 0% 96%;
+  --accent-foreground:  0 0% 9%;
 
   /* ── Semantic ───────────────────────────────── */
-  --destructive:        0 84% 60%;    /* #ef4444 */
+  --destructive:        0 72% 51%;     /* #dc2626 */
   --destructive-foreground: 0 0% 100%;
-  --warning:            38 92% 50%;   /* #f59e0b */
-  --success:            142 71% 45%;  /* same green */
-  --info:               217 91% 60%;  /* #3b82f6 */
+  --warning:            38 92% 45%;
+  --success:            142 70% 36%;
+  --info:               217 91% 55%;
 
   /* ── Radius ─────────────────────────────────── */
   --radius: 0.5rem;
 }
 
-/* Dark class always applied (forcedTheme="dark") — same values */
+/* Tema oscuro (next-themes agrega .dark al <html>) */
 .dark {
+  color-scheme: dark;
+
   --brand:              142 71% 45%;
   --brand-foreground:   0 0% 4%;
   --brand-soft:         142 71% 45% / 0.1;
@@ -148,7 +152,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 body {

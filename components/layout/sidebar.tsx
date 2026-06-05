@@ -81,7 +81,7 @@ function NavItem({ label, href, icon: Icon, onClick }: NavItemProps) {
           "font-sans",
           isActive
             ? "bg-brand/10 text-brand"
-            : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+            : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
         )}
       >
         {/* Active left border */}

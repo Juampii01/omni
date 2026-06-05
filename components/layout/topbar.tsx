@@ -4,6 +4,7 @@ import { Menu, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "./user-menu"
 import { CommandPalette } from "./command-palette"
+import { ThemeToggle } from "./theme-toggle"
 import { useEffect, useState } from "react"
 
 interface TopbarProps {
@@ -53,6 +54,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Button variant="ghost" size="icon" className="sm:hidden h-8 w-8 text-muted-foreground" onClick={openPalette}>
           <Search className="h-4 w-4" />
         </Button>
+        <ThemeToggle />
         <UserMenu />
       </div>
 

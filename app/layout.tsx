@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full dark`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background antialiased">
