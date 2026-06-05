@@ -180,8 +180,10 @@ export async function getRecentMedia(igUserId: string, token: string, max = 200)
   // no solo los primeros 25. Pedimos like_count/comments_count/views como CAMPOS.
   // `max` es un tope de seguridad para no loopear infinito.
   void igUserId
+  // like_count/comments_count vienen como campos (confiable). NO pedimos `views`
+  // acá (vuelve null en /me/media) — las views reales salen de /{media}/insights.
   const fields =
-    "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count,views"
+    "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count"
   const first = new URL(`${IG_GRAPH}/me/media`)
   first.searchParams.set("fields", fields)
   first.searchParams.set("limit", "100")
@@ -207,26 +209,68 @@ export async function getRecentMedia(igUserId: string, token: string, max = 200)
   return all.slice(0, max)
 }
 
+/**
+ * Insights por media desde GET /{ig-media-id}/insights.
+ * Usa los nombres ACTUALES de Meta (v22+): `views` reemplaza a
+ * impressions/plays/video_views (deprecados → rompen la llamada).
+ *   - núcleo (todo media):  views, reach
+ *   - REEL/VIDEO además:    total_interactions, saved, shares
+ * Si el set combinado falla, se reintenta métrica por métrica (un media_type
+ * puede no aceptar alguna). SIEMPRE loguea status + body crudo del error de Meta.
+ */
 export async function getMediaInsights(mediaId: string, mediaType: string, token: string): Promise<IGMediaInsights> {
-  const baseMetrics = ["impressions", "reach", "likes", "comments", "shares", "saved"]
   const isVideo = mediaType === "REEL" || mediaType === "VIDEO"
-  const metrics = isVideo ? [...baseMetrics, "plays", "total_interactions"] : [...baseMetrics, "total_interactions"]
+  const metrics = isVideo
+    ? ["views", "reach", "total_interactions", "saved", "shares"]
+    : ["views", "reach"]
 
-  try {
-    const data = await graphIGGet<{ data: Array<{ name: string; values: Array<{ value: number }> }> }>(
-      `/${mediaId}/insights`,
-      token,
-      { metric: metrics.join(",") }
-    )
-    const result: IGMediaInsights = {}
-    for (const item of data.data) {
-      const val = item.values?.[0]?.value ?? 0
-      ;(result as Record<string, number>)[item.name === "saved" ? "saved" : item.name] = val
+  async function fetchInsights(
+    ms: string[],
+  ): Promise<{ ok: true; values: Record<string, number> } | { ok: false; status: number; body: string }> {
+    const url = new URL(`${IG_GRAPH}/${mediaId}/insights`)
+    url.searchParams.set("metric", ms.join(","))
+    url.searchParams.set("access_token", token)
+    const res = await fetch(url.toString(), { next: { revalidate: 0 } })
+    const body = await res.text()
+    if (!res.ok) return { ok: false, status: res.status, body }
+    let json: { data?: Array<{ name: string; values?: Array<{ value: number }>; total_value?: { value: number } }> }
+    try {
+      json = JSON.parse(body)
+    } catch {
+      return { ok: false, status: res.status, body }
     }
-    return result
-  } catch {
-    return {}
+    const values: Record<string, number> = {}
+    for (const item of json.data ?? []) {
+      values[item.name] = item.total_value?.value ?? item.values?.[0]?.value ?? 0
+    }
+    return { ok: true, values }
   }
+
+  function apply(r: IGMediaInsights, v: Record<string, number>) {
+    if ("views" in v) r.views = v.views
+    if ("reach" in v) r.reach = v.reach
+    if ("total_interactions" in v) r.total_interactions = v.total_interactions
+    if ("saved" in v) r.saved = v.saved
+    if ("shares" in v) r.shares = v.shares
+  }
+
+  const result: IGMediaInsights = {}
+  const combined = await fetchInsights(metrics)
+  if (combined.ok) {
+    apply(result, combined.values)
+    return result
+  }
+
+  // El set combinado falló → log crudo de Meta + fallback métrica por métrica.
+  console.error(
+    `getMediaInsights ${mediaId} (${mediaType}) combinado falló [${metrics.join(",")}]: ${combined.status} ${combined.body}`,
+  )
+  for (const metric of metrics) {
+    const single = await fetchInsights([metric])
+    if (single.ok) apply(result, single.values)
+    else console.error(`getMediaInsights ${mediaId} metric=${metric} falló: ${single.status} ${single.body}`)
+  }
+  return result
 }
 
 // ── Account insights ──────────────────────────────────────────────────────────
@@ -238,21 +282,60 @@ export async function getAccountInsights(
   since?: Date,
   until?: Date
 ): Promise<IGAccountInsight[]> {
-  const params: Record<string, string> = {
-    metric: "follower_count,impressions,reach,profile_views,website_clicks,email_contacts",
-    period,
-  }
-  if (since) params.since = Math.floor(since.getTime() / 1000).toString()
-  if (until) params.until = Math.floor(until.getTime() / 1000).toString()
-
   void igUserId
-  try {
-    // /me/insights — NO /{user_id}/insights con tokens de Instagram Login
-    const data = await graphIGGet<{ data: IGAccountInsight[] }>(`/me/insights`, token, params)
-    return data.data
-  } catch {
-    return []
+  const sinceTs = since ? Math.floor(since.getTime() / 1000).toString() : undefined
+  const untilTs = until ? Math.floor(until.getTime() / 1000).toString() : undefined
+  const todayIso = (until ?? new Date()).toISOString()
+
+  // Nombres ACTUALES (v22+). `reach`/`views` a nivel cuenta requieren
+  // metric_type=total_value; `follower_count` es serie temporal por día.
+  // NO impressions/profile_views/website_clicks/email_contacts (deprecados).
+  const specs: Array<{ metric: string; totalValue: boolean }> = [
+    { metric: "follower_count", totalValue: false },
+    { metric: "reach", totalValue: true },
+    { metric: "views", totalValue: true },
+  ]
+
+  const out: IGAccountInsight[] = []
+  for (const spec of specs) {
+    const url = new URL(`${IG_GRAPH}/me/insights`)
+    url.searchParams.set("metric", spec.metric)
+    url.searchParams.set("period", period)
+    if (spec.totalValue) url.searchParams.set("metric_type", "total_value")
+    if (sinceTs) url.searchParams.set("since", sinceTs)
+    if (untilTs) url.searchParams.set("until", untilTs)
+    url.searchParams.set("access_token", token)
+
+    const res = await fetch(url.toString(), { next: { revalidate: 0 } })
+    const body = await res.text()
+    if (!res.ok) {
+      console.error(`getAccountInsights metric=${spec.metric} falló: ${res.status} ${body}`)
+      continue
+    }
+    let json: {
+      data?: Array<{
+        name: string
+        period?: string
+        values?: Array<{ value: number; end_time: string }>
+        total_value?: { value: number }
+      }>
+    }
+    try {
+      json = JSON.parse(body)
+    } catch {
+      console.error(`getAccountInsights metric=${spec.metric} JSON inválido: ${body}`)
+      continue
+    }
+    for (const item of json.data ?? []) {
+      if (item.values && item.values.length) {
+        out.push({ name: item.name, period: item.period ?? period, values: item.values })
+      } else if (item.total_value) {
+        // total_value no trae serie diaria → lo anclamos a "hoy"
+        out.push({ name: item.name, period: item.period ?? period, values: [{ value: item.total_value.value, end_time: todayIso }] })
+      }
+    }
   }
+  return out
 }
 
 // ── Token refresh ─────────────────────────────────────────────────────────────

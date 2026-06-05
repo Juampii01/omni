@@ -39,6 +39,7 @@ export interface IGMediaInsights {
   saved?: number
   plays?: number
   total_interactions?: number
+  views?: number // métrica actual (v22+) que reemplaza a plays/video_views
 }
 
 export type IGInsightPeriod = "day" | "week" | "days_28"

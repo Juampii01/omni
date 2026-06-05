@@ -75,9 +75,10 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
         { onConflict: "ig_media_id" }
       )
 
-      // 3. Métricas: desde los CAMPOS de /me/media (confiable). El endpoint
-      //    /insights por-media es best-effort (puede fallar) y solo aporta
-      //    reach/saves/shares extra.
+      // 3. Métricas:
+      //    - likes/comments → de los CAMPOS de /me/media (confiable).
+      //    - views/reach/etc → de GET /{media}/insights (m.views de /me/media
+      //      vuelve null). getMediaInsights usa nombres v22+ y loguea errores.
       const { data: mediaRow } = await (supabase as any)
         .from("instagram_media")
         .select("id")
@@ -87,10 +88,10 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
       if (mediaRow) {
         const likes = m.like_count ?? 0
         const comments = m.comments_count ?? 0
-        const views = m.views ?? 0
 
-        const extra = await getMediaInsights(m.id, m.media_type, token) // {} si falla
-        const totalInteractions = extra.total_interactions ?? likes + comments
+        const insights = await getMediaInsights(m.id, m.media_type, token)
+        const views = insights.views ?? 0
+        const totalInteractions = insights.total_interactions ?? likes + comments
         // engagement_rate guardado como PORCENTAJE (ej: 4.2 = 4.2%)
         const engRate = views > 0 ? ((likes + comments) / views) * 100 : 0
 
@@ -98,13 +99,13 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
           {
             media_id: mediaRow.id,
             snapshotted_at: new Date().toISOString(),
-            impressions: extra.impressions ?? null,
-            reach: extra.reach ?? null,
+            impressions: null,
+            reach: insights.reach ?? null,
             likes,
             comments,
-            shares: extra.shares ?? null,
-            saves: extra.saved ?? null,
-            plays: views,
+            shares: insights.shares ?? null,
+            saves: insights.saved ?? null,
+            plays: views, // "views" de la Graph API → columna plays (la que usa el front)
             total_interactions: totalInteractions,
             engagement_rate: Math.min(engRate, 99.9999),
           },
@@ -140,11 +141,8 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
           account_id: igAccountDbId,
           period_date: date,
           followers_count: metrics.follower_count,
-          impressions: metrics.impressions,
           reach: metrics.reach,
-          profile_views: metrics.profile_views,
-          website_clicks: metrics.website_clicks,
-          email_contacts: metrics.email_contacts,
+          impressions: metrics.views ?? null, // "views" de cuenta → columna impressions (no hay columna views)
         },
         { onConflict: "account_id,period_date", ignoreDuplicates: true }
       )

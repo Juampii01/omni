@@ -13,7 +13,6 @@ import { IGTopContent } from "./IGTopContent"
 import { IGInsightsPanel } from "./IGInsightsPanel"
 import { IGContentGrid } from "./IGContentGrid"
 import { IGAudiencePanel } from "./IGAudiencePanel"
-import { IGInbox } from "./IGInbox"
 import { IGPublishPanel } from "./IGPublishPanel"
 import { IGTabErrorBoundary } from "./IGTabErrorBoundary"
 
@@ -107,12 +106,6 @@ export function IGProPage() {
           {tab === "audiencia" && (
             <IGTabErrorBoundary tabName="Audiencia">
               <IGAudiencePanel />
-            </IGTabErrorBoundary>
-          )}
-
-          {tab === "mensajes" && (
-            <IGTabErrorBoundary tabName="Mensajes">
-              <IGInbox />
             </IGTabErrorBoundary>
           )}
 
