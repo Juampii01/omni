@@ -91,7 +91,14 @@ export async function POST(req: NextRequest) {
   if (!conversationId) {
     const firstUserMsg = messages.find((m: any) => m.role === "user")
     const title = (firstUserMsg?.content ?? "Nueva conversacion").slice(0, 60).trim()
-    const { data: conv } = await sb.from("ai_conversations").insert({ user_id: user.id, title, context_type: "agent" }).select("id").single()
+    // context_type debe ser uno de los permitidos por el CHECK de ai_conversations
+    // ('general','crm','tasks','kpis','content','analysis') — "agent" NO es válido.
+    const { data: conv, error: convErr } = await sb
+      .from("ai_conversations")
+      .insert({ user_id: user.id, title, context_type: "general" })
+      .select("id")
+      .single()
+    if (convErr) console.error("[ai/agent] no se pudo crear la conversación:", convErr)
     conversationId = conv?.id ?? null
   }
   const userMsg = messages[messages.length - 1]
