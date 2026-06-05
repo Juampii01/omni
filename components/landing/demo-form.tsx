@@ -1,11 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 type Status = "idle" | "loading" | "success" | "error"
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const inputStyle: CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,.025)",
+  border: "1px solid var(--line-strong)",
+  borderRadius: 12,
+  padding: "12px 15px",
+  color: "var(--ink)",
+  fontFamily: "var(--sans)",
+  fontSize: 15,
+  outline: "none",
+}
+const labelStyle: CSSProperties = {
+  display: "block",
+  marginBottom: 7,
+  fontFamily: "var(--mono)",
+  fontSize: 11,
+  letterSpacing: ".08em",
+  textTransform: "uppercase",
+  color: "var(--ink-faint)",
+}
 
 export function DemoForm() {
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" })
@@ -19,8 +39,6 @@ export function DemoForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-
-    // Validación client-side (fail fast)
     if (!form.name.trim()) return setError("Ingresá tu nombre.")
     if (!EMAIL_RE.test(form.email.trim())) return setError("Ingresá un email válido.")
 
@@ -46,12 +64,18 @@ export function DemoForm() {
 
   if (status === "success") {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/15">
-          <CheckCircle2 className="h-6 w-6 text-brand" />
-        </div>
-        <h3 className="font-serif text-xl text-foreground">¡Listo! Te contactamos.</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <div
+        style={{
+          borderRadius: 18,
+          border: "1px solid rgba(68,240,140,.28)",
+          background: "linear-gradient(120deg,rgba(68,240,140,.1),rgba(68,240,140,.02))",
+          padding: 40,
+          textAlign: "center",
+        }}
+      >
+        <CheckCircle2 size={34} style={{ color: "var(--green)", margin: "0 auto 14px" }} />
+        <div style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)" }}>¡Listo! Te contactamos.</div>
+        <p style={{ marginTop: 10, fontSize: 14.5, color: "var(--ink-dim)" }}>
           Recibimos tu solicitud de demo. Te escribimos al email que dejaste para coordinar.
         </p>
       </div>
@@ -61,55 +85,60 @@ export function DemoForm() {
   const loading = status === "loading"
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
+    <form
+      onSubmit={onSubmit}
+      style={{
+        borderRadius: 18,
+        border: "1px solid var(--line-strong)",
+        background: "linear-gradient(180deg,rgba(18,24,21,.7),rgba(7,10,9,.6))",
+        padding: 28,
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div>
-          <label className="mb-1.5 block text-xs text-muted-foreground">Nombre *</label>
-          <input
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            disabled={loading}
-            placeholder="Tu nombre"
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-brand disabled:opacity-60"
-          />
+          <label style={labelStyle}>Nombre *</label>
+          <input style={inputStyle} value={form.name} onChange={(e) => set("name", e.target.value)} disabled={loading} placeholder="Tu nombre" />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs text-muted-foreground">Email *</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => set("email", e.target.value)}
-            disabled={loading}
-            placeholder="tu@email.com"
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-brand disabled:opacity-60"
-          />
+          <label style={labelStyle}>Email *</label>
+          <input style={inputStyle} type="email" value={form.email} onChange={(e) => set("email", e.target.value)} disabled={loading} placeholder="tu@email.com" />
         </div>
       </div>
       <div>
-        <label className="mb-1.5 block text-xs text-muted-foreground">Empresa</label>
-        <input
-          value={form.company}
-          onChange={(e) => set("company", e.target.value)}
-          disabled={loading}
-          placeholder="Nombre de tu empresa (opcional)"
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-brand disabled:opacity-60"
-        />
+        <label style={labelStyle}>Empresa</label>
+        <input style={inputStyle} value={form.company} onChange={(e) => set("company", e.target.value)} disabled={loading} placeholder="Tu empresa (opcional)" />
       </div>
       <div>
-        <label className="mb-1.5 block text-xs text-muted-foreground">Mensaje</label>
+        <label style={labelStyle}>Mensaje</label>
         <textarea
+          style={{ ...inputStyle, resize: "none" }}
+          rows={3}
           value={form.message}
           onChange={(e) => set("message", e.target.value)}
           disabled={loading}
-          rows={3}
           placeholder="Contanos brevemente sobre tu negocio (opcional)"
-          className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-brand disabled:opacity-60"
         />
       </div>
 
       {status === "error" && error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start",
+            borderRadius: 10,
+            border: "1px solid rgba(248,113,113,.25)",
+            background: "rgba(248,113,113,.08)",
+            padding: "9px 12px",
+            fontSize: 13,
+            color: "#fca5a5",
+          }}
+        >
+          <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 2 }} />
           <span>{error}</span>
         </div>
       )}
@@ -117,17 +146,33 @@ export function DemoForm() {
       <button
         type="submit"
         disabled={loading}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+        style={{
+          height: 50,
+          borderRadius: 999,
+          border: "none",
+          cursor: loading ? "default" : "pointer",
+          background: "var(--green)",
+          color: "#04150b",
+          fontFamily: "var(--sans)",
+          fontWeight: 600,
+          fontSize: 15.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 9,
+          opacity: loading ? 0.7 : 1,
+          boxShadow: "0 0 0 1px rgba(68,240,140,.5),0 10px 32px -10px rgba(68,240,140,.6)",
+        }}
       >
         {loading ? (
           <>
-            <Loader2 size={16} className="animate-spin" /> Enviando…
+            <Loader2 size={17} className="animate-spin" /> Enviando…
           </>
         ) : (
           "Agendá una demo"
         )}
       </button>
-      <p className="text-center text-[11px] text-muted-foreground">
+      <p style={{ textAlign: "center", fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-faint)", letterSpacing: ".03em" }}>
         Te contactamos para coordinar. Sin compromiso.
       </p>
     </form>
