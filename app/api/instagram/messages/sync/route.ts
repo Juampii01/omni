@@ -35,14 +35,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const code = connRes.error.kind === "TOKEN_EXPIRED" ? 401 : 404
     return NextResponse.json({ error: connRes.error.kind }, { status: code })
   }
-  const { token, igUserId, accountDbId } = connRes.conn
+  const { token, igUserId, accountDbId, username } = connRes.conn
+  const ownUsername = (username ?? "").toLowerCase()
 
   const convs = await getConversations(igUserId, token)
   let synced = 0
 
   for (const conv of convs) {
     const participants = conv.participants?.data ?? []
-    const other = participants.find((p) => p.id !== igUserId) ?? participants[0]
+    // Identificar al OTRO participante. Comparar por id no alcanza: el IGSID de la
+    // conversación no coincide con nuestro ig_user_id, así que la exclusión por id
+    // nos terminaba eligiendo a NOSOTROS mismos. Excluimos por nuestro propio
+    // username, que sí conocemos con certeza.
+    const other =
+      (ownUsername
+        ? participants.find((p) => (p.username ?? "").toLowerCase() !== ownUsername)
+        : undefined) ??
+      participants.find((p) => p.id !== igUserId) ??
+      participants[0]
+    const otherId = other?.id ?? ""
     const lastMessageAt = conv.updated_time ? new Date(conv.updated_time).toISOString() : null
 
     // Upsert conversación
@@ -69,7 +80,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     let lastUserMsgAt: string | null = null
 
     for (const msg of msgs) {
-      const isFromBusiness = msg.from?.id === igUserId
+      // Quién mandó el mensaje: preferimos comparar por username (confiable);
+      // si no, "es nuestro si NO viene del otro participante".
+      const isFromBusiness =
+        ownUsername && msg.from?.username
+          ? msg.from.username.toLowerCase() === ownUsername
+          : otherId
+            ? msg.from?.id !== otherId
+            : msg.from?.id === igUserId
       const ts = msg.created_time ? new Date(msg.created_time).toISOString() : new Date().toISOString()
 
       await sb.from("instagram_messages").upsert(
