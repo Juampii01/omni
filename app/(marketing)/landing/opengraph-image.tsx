@@ -38,9 +38,9 @@ export default function OpengraphImage() {
           </div>
           <div style={{ fontSize: 34, color: "#fff", fontFamily: "Georgia, serif" }}>Omni</div>
         </div>
-        <div style={{ fontSize: 60, color: "#fff", lineHeight: 1.1, fontFamily: "Georgia, serif", maxWidth: 1000 }}>
-          No es otro dashboard. Es tu propio sistema operativo —
-          <span style={{ color: "#22c55e" }}> con IA que te aconseja.</span>
+        <div style={{ display: "flex", flexDirection: "column", fontSize: 60, lineHeight: 1.1, fontFamily: "Georgia, serif", maxWidth: 1000 }}>
+          <div style={{ color: "#fff" }}>No es otro dashboard. Es tu propio sistema operativo —</div>
+          <div style={{ color: "#22c55e" }}>con IA que te aconseja.</div>
         </div>
         <div style={{ fontSize: 26, color: "#a1a1aa", marginTop: 28, maxWidth: 900 }}>
           Clientes, leads, métricas, contenido y redes en un solo lugar. Tu marca, tu dominio, tu instancia.
