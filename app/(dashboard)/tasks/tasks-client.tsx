@@ -216,7 +216,7 @@ function TaskCard({ task, profiles, isDragging, onEdit, onDelete, onStatusChange
           <p className="text-xs font-medium leading-snug flex-1">{task.title}</p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0">
+              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-60 group-hover:opacity-100 shrink-0 text-muted-foreground hover:text-foreground">
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
