@@ -113,6 +113,18 @@ export async function syncInstagramAccount(): Promise<{ ok: boolean; error?: str
         )
       }
     }
+
+    // Limpieza: borrar de la DB los media que YA NO están en Instagram (posts
+    // borrados). Solo si trajimos algo, para no vaciar la tabla ante una
+    // respuesta vacía/parcial. Las insights asociadas caen por ON DELETE CASCADE.
+    const syncedIds = media.map((m) => m.id).filter(Boolean)
+    if (syncedIds.length > 0) {
+      await (supabase as any)
+        .from("instagram_media")
+        .delete()
+        .eq("account_id", igAccountDbId)
+        .not("ig_media_id", "in", `(${syncedIds.join(",")})`)
+    }
   } catch (e) {
     console.error("sync: media sync failed", e)
   }
