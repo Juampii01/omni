@@ -42,10 +42,17 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password")
 
+  // Rutas PÚBLICAS (landing de marketing + endpoint del form de demo).
+  // No requieren sesión — el proxy no debe redirigirlas a /login.
+  const isPublicPath =
+    pathname === "/landing" ||
+    pathname.startsWith("/landing/") ||
+    pathname === "/api/demo"
+
   // SOLO redirigir usuarios no autenticados que intentan acceder a rutas protegidas.
   // NO redirigir usuarios autenticados desde páginas de auth — eso lo maneja
   // el server component de cada página de auth para evitar loops.
-  if (!user && !isAuthPage) {
+  if (!user && !isAuthPage && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("next", pathname)
