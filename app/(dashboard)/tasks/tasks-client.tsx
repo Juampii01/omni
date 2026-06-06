@@ -305,7 +305,9 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
 
   async function deleteTask(id: string): Promise<boolean> {
     const sb = createClient() as any
-    const { error } = await sb.from("tasks").update({ deleted_at: new Date().toISOString() }).eq("id", id)
+    // DELETE real (no soft-delete): el update de deleted_at lo bloquea el
+    // with-check de una policy de UPDATE; un DELETE no tiene with-check.
+    const { error } = await sb.from("tasks").delete().eq("id", id)
     if (error) {
       toast.error("No se pudo eliminar: " + (error.message || error.code || "error desconocido"))
       return false
