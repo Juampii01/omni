@@ -20,6 +20,13 @@ import {
   Sparkles,
   MessageCircle,
   MessagesSquare,
+  CalendarDays,
+  Search,
+  Megaphone,
+  Trophy,
+  Rocket,
+  Youtube,
+  TrendingUp,
 } from "lucide-react"
 import { UserMenu } from "./user-menu"
 
@@ -27,8 +34,8 @@ const NAV_SECTIONS = [
   {
     section: null,
     items: [
-      { label: "Hoy",              href: "/",        icon: LayoutDashboard },
-      { label: "Omni Intelligence", href: "/ai",     icon: Sparkles },
+      { label: "Hoy",               href: "/",   icon: LayoutDashboard },
+      { label: "Omni Intelligence", href: "/ai", icon: Sparkles },
     ],
   },
   {
@@ -37,14 +44,17 @@ const NAV_SECTIONS = [
       { label: "Clientes",       href: "/clients",       icon: Users },
       { label: "Conversaciones", href: "/conversations", icon: MessageCircle },
       { label: "Leads",          href: "/crm",           icon: Contact },
+      { label: "Calendario",     href: "/calendar",      icon: CalendarDays },
+      { label: "Discovery",      href: "/discovery",     icon: Search },
     ],
   },
   {
     section: "Equipo",
     items: [
-      { label: "Chat interno",   href: "/chat",         icon: MessagesSquare },
-      { label: "Tareas",         href: "/tasks",        icon: CheckSquare },
-      { label: "Equipo",         href: "/team",         icon: UserCog },
+      { label: "Tareas",           href: "/tasks",  icon: CheckSquare },
+      { label: "Chat interno",     href: "/chat",   icon: MessagesSquare },
+      { label: "Comunicaciones",   href: "/comms",  icon: Megaphone },
+      { label: "Equipo",           href: "/team",   icon: UserCog },
     ],
   },
   {
@@ -53,13 +63,17 @@ const NAV_SECTIONS = [
       { label: "Contenido",      href: "/content",           icon: FileEdit },
       { label: "Instagram",      href: "/socials/instagram", icon: Instagram },
       { label: "Estrategia",     href: "/strategy",          icon: Target },
+      { label: "Competidores",   href: "/competitors",       icon: Trophy },
+      { label: "Lanzamientos",   href: "/launches",          icon: Rocket },
     ],
   },
   {
     section: "Datos",
     items: [
-      { label: "Métricas",       href: "/metrics",      icon: BarChart2 },
-      { label: "KPIs",           href: "/kpis",         icon: Gauge },
+      { label: "Métricas",   href: "/metrics",         icon: BarChart2 },
+      { label: "KPIs",       href: "/kpis",            icon: Gauge },
+      { label: "Meta Ads",   href: "/metrics/ads",     icon: TrendingUp },
+      { label: "YouTube",    href: "/metrics/youtube", icon: Youtube },
     ],
   },
   {
