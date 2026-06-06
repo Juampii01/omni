@@ -459,7 +459,7 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
         onConfirm={handleDelete}
       />
 
-      {/* Zona para arrastrar y eliminar (aparece al arrastrar una tarea) */}
+      {/* Zona para arrastrar y eliminar — barra completa a la izquierda */}
       {draggingId && (
         <div
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOverTrash(true) }}
@@ -472,16 +472,16 @@ export function TasksClient({ initialTasks, profiles, departments, currentUserId
             if (id) deleteTask(id)
           }}
           className={cn(
-            "fixed left-6 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all",
-            "h-40 w-28 text-center select-none",
+            "fixed left-0 top-0 bottom-0 z-50 w-48 flex flex-col items-center justify-center gap-4 select-none transition-all border-r-2 border-dashed",
             overTrash
-              ? "border-destructive bg-destructive/15 text-destructive scale-105"
-              : "border-border bg-card/95 text-muted-foreground backdrop-blur",
+              ? "bg-destructive/25 border-destructive text-destructive"
+              : "bg-destructive/10 border-destructive/40 text-destructive/80 backdrop-blur-sm",
           )}
         >
-          <Trash2 className={cn("h-7 w-7 transition-transform", overTrash && "scale-110")} />
-          <span className="text-xs font-medium px-2 font-sans leading-tight">
-            {overTrash ? "Soltá para eliminar" : "Arrastrá acá para eliminar"}
+          <Trash2 className={cn("h-12 w-12 transition-transform", overTrash && "scale-125")} />
+          <span className="text-base font-bold uppercase tracking-wider font-sans">Eliminar</span>
+          <span className="text-xs px-6 text-center text-muted-foreground font-sans">
+            {overTrash ? "Soltá para eliminar la tarea" : "Soltá la tarea acá"}
           </span>
         </div>
       )}
