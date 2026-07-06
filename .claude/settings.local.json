@@ -115,7 +115,16 @@
       "Bash(cat /tmp/tc.txt 2>&1; echo \"=== tc.txt lines: $\\(wc -l < /tmp/tc.txt 2>/dev/null\\) ===\")",
       "Bash(npx tsc *)",
       "Read(//tmp/**)",
-      "Bash(cd \"/Users/juanpabloacostacaminos/Documents/Proyectos/3-servicio-premium/Omni\" *)"
+      "Bash(cd \"/Users/juanpabloacostacaminos/Documents/Proyectos/3-servicio-premium/Omni\" *)",
+      "Bash(vercel ls *)",
+      "Bash(curl -s https://omni-three-sigma.vercel.app/login)",
+      "Bash(curl -s \"https://omni-three-sigma.vercel.app/\")",
+      "Bash(curl -sI https://omni-three-sigma.vercel.app)",
+      "Read(//Applications/Google Chrome.app/Contents/MacOS/**)",
+      "Bash(python3 -c \"import weasyprint; print\\('weasyprint OK'\\)\")",
+      "Bash(python3 -c \"import md2pdf\")",
+      "Bash('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --headless=new --disable-gpu --no-pdf-header-footer --print-to-pdf=/Users/juanpabloacostacaminos/Desktop/Omni-Design-System.pdf --virtual-time-budget=6000 file:///Users/juanpabloacostacaminos/Desktop/omni-design-system.html)",
+      "Bash(ls -la \"/Users/juanpabloacostacaminos/Desktop/Omni-Design-System.pdf\")"
     ]
   }
 }
