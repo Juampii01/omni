@@ -5,6 +5,7 @@
 // (/api/cron/daily-briefings) para no duplicar esta lógica.
 
 import { createServiceClient } from "@/lib/supabase-service"
+import { emitOmniEvent } from "@/lib/omni/automation-events"
 
 export type BriefingType = "leads" | "prospecting" | "community" | "unanswered"
 
@@ -46,6 +47,7 @@ export async function persistBriefingResult(
       body: extractHeadline(findings[0]),
       link: "/dashboard/briefings",
     })
+    await emitOmniEvent(clientId, "briefing.finding", { type, findings, messagesAnalyzed })
   }
 
   return briefing

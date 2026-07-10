@@ -22,6 +22,7 @@ import {
   Lightbulb,
   Radio,
   CalendarDays,
+  Zap,
 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { CommandMenu } from "@/components/layout/command-menu"
@@ -65,6 +66,7 @@ const NAV_GROUPS = [
     label: "Operaciones",
     items: [
       { href: "/dashboard/tasks", label: "Tareas", icon: KanbanSquare },
+      { href: "/dashboard/automations", label: "Automatizaciones", icon: Zap },
       { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
     ],
   },

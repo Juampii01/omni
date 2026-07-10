@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
+import { emitOmniEvent } from "@/lib/omni/automation-events"
 
 function getJwt(req: NextRequest) {
   const header = req.headers.get("authorization")
@@ -33,9 +34,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const supabase = createServiceClient()
+
+  let previousColumnId: string | null = null
+  if (typeof patch.column_id === "string") {
+    const { data: existing } = await supabase.from("kanban_tasks").select("column_id").eq("id", id).eq("client_id", ctx.clientId).maybeSingle()
+    previousColumnId = existing?.column_id ?? null
+  }
+
   const { error } = await supabase.from("kanban_tasks").update(patch).eq("id", id).eq("client_id", ctx.clientId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (typeof patch.column_id === "string" && patch.column_id !== previousColumnId) {
+    await emitOmniEvent(ctx.clientId, "task.column_changed", { taskId: id, columnId: patch.column_id, previousColumnId })
+  }
+
   return NextResponse.json({ ok: true })
 }
 
