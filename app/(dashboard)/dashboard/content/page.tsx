@@ -181,7 +181,7 @@ export default function ContentPage() {
           </div>
 
           {ideas === null ? (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-40 rounded-2xl" />
               ))}
@@ -189,7 +189,7 @@ export default function ContentPage() {
           ) : ideas.length === 0 ? (
             <p className="text-sm text-muted-foreground">Todavía no hay ideas. Generá las primeras con IA.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ideas.map((idea) => (
                 <IdeaCard key={idea.id} idea={idea} onDelete={handleDeleteIdea} onGenerateScript={handleGenerateScript} scripts={scripts} />
               ))}

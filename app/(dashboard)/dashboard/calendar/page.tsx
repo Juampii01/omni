@@ -157,8 +157,8 @@ export default function CalendarPage() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 rounded-2xl border border-border/60 bg-card p-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <p className="font-heading text-lg capitalize">{cursor.toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</p>
             <div className="flex gap-1">

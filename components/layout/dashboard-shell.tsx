@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { motion } from "motion/react"
@@ -23,6 +23,8 @@ import {
   Radio,
   CalendarDays,
   Zap,
+  Menu,
+  X,
 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { CommandMenu } from "@/components/layout/command-menu"
@@ -85,6 +87,11 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
   const pathname = usePathname()
   const router = useRouter()
   const [commandOpen, setCommandOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [pathname])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -96,12 +103,29 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
     <div className="flex min-h-screen bg-background">
       <CommandMenu />
 
-      <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+      {mobileNavOpen && (
+        <button
+          aria-label="Cerrar menú"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 -translate-x-full flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:static md:translate-x-0 ${mobileNavOpen ? "translate-x-0" : ""}`}
+      >
         <div className="flex items-center gap-2 px-6 py-7">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
             O
           </div>
           <p className="font-heading text-xl italic tracking-tight text-sidebar-foreground">Omni</p>
+          <button
+            aria-label="Cerrar menú"
+            onClick={() => setMobileNavOpen(false)}
+            className="ml-auto text-sidebar-foreground/50 md:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="px-3 pb-3">
@@ -115,7 +139,7 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
           </button>
         </div>
 
-        <nav className="flex-1 space-y-4 px-3">
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3">
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
               <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35">{group.label}</p>
@@ -171,13 +195,20 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border/60 px-8 py-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">{session.clientName}</p>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-4 md:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              aria-label="Abrir menú"
+              onClick={() => setMobileNavOpen(true)}
+              className="shrink-0 text-foreground/70 md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <p className="truncate text-sm font-medium text-foreground">{session.clientName}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="uppercase tracking-wide">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Badge variant="secondary" className="hidden uppercase tracking-wide sm:inline-flex">
               {session.role}
             </Badge>
             {session.clientId && <NotificationBell clientId={session.clientId} />}
@@ -185,7 +216,7 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
           </div>
         </header>
 
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>
   )

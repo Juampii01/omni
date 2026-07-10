@@ -143,7 +143,7 @@ export default function MentorPage() {
       <div className="space-y-6">
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-40 rounded-2xl" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-64 rounded-2xl" />
           ))}
@@ -182,7 +182,7 @@ export default function MentorPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {LAYERS.map((l) => (
           <LayerColumn
             key={l.key}

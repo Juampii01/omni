@@ -106,7 +106,7 @@ export default function LeadsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="gap-2 py-4">
           <CardHeader className="flex-row items-center gap-3 px-5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">

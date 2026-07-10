@@ -126,7 +126,7 @@ export default function DashboardPage() {
           <Skeleton className="h-7 w-40" />
           <Skeleton className="mt-2 h-4 w-24" />
         </div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32 rounded-2xl" />
           ))}
@@ -143,7 +143,7 @@ export default function DashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">{session?.clientName}</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard index={0} icon={Users} label="Leads totales" value={total} sparkData={sparkLeads.length ? sparkLeads : [0, 0]} sparkColor="var(--chart-1)" />
         <StatCard
           index={1}
