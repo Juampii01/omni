@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           participant_ig_id: conv.participantIgId,
           synced_at: new Date().toISOString(),
         },
-        { onConflict: "ig_conversation_id" }
+        { onConflict: "client_id,ig_conversation_id" }
       )
       .select("id")
       .single()
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         sent_at: m.sentAt,
         synced_at: new Date().toISOString(),
       })),
-      { onConflict: "ig_message_id" }
+      { onConflict: "conversation_id,ig_message_id" }
     )
     if (!msgError) messagesSynced += messages.length
 
