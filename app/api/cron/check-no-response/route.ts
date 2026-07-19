@@ -5,9 +5,18 @@
 // mensaje del lead, no acá.
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase-service"
-import { markNoCerro, escalateToHuman } from "@/lib/omni/conversation-ownership"
+import { markManyNoCerro, escalateManyToHuman } from "@/lib/omni/conversation-ownership"
+
+export const maxDuration = 60
 
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000
+// Defensivo: acota cuántas filas procesa una sola corrida. Si stale.length
+// llega justo a BATCH_LIMIT, puede haber más filas obsoletas de las que
+// esta corrida procesa — no hace falta paginar dentro de una misma
+// ejecución, porque el cron vuelve a correr cada N minutos (vercel.json) y
+// esas filas siguen apareciendo en la próxima corrida hasta que se
+// procesen (el filtro es por antigüedad, no se "vencen" ni se pierden).
+const BATCH_LIMIT = 500
 
 function isAuthorized(req: NextRequest) {
   const auth = req.headers.get("authorization")
@@ -17,31 +26,40 @@ function isAuthorized(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const supabase = createServiceClient()
-  const cutoff = new Date(Date.now() - FORTY_EIGHT_HOURS_MS).toISOString()
+  try {
+    const supabase = createServiceClient()
+    const cutoff = new Date(Date.now() - FORTY_EIGHT_HOURS_MS).toISOString()
 
-  const { data: stale, error } = await supabase
-    .from("ig_conversation_state")
-    .select("id, client_id, conversation_id")
-    .eq("owner", "ia_activa")
-    .lt("last_lead_message_at", cutoff)
+    const { data: stale, error } = await supabase
+      .from("ig_conversation_state")
+      .select("id, client_id, conversation_id")
+      .eq("owner", "ia_activa")
+      .lt("last_lead_message_at", cutoff)
+      .limit(BATCH_LIMIT)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!stale || stale.length === 0) return NextResponse.json({ escalated: 0, skipped: 0, total: 0 })
 
-  let skipped = 0
-  for (const state of stale ?? []) {
-    const marked = await markNoCerro(state.id)
-    if (!marked) {
-      skipped++
-      console.log(`[cron/check-no-response] no_cerro no aplicado — owner ya no era ia_activa. state_id=${state.id}`)
-      continue
+    const staleIds = stale.map((s) => s.id)
+    const markedIds = await markManyNoCerro(staleIds)
+    const skipped = staleIds.length - markedIds.length
+
+    // TODO: sin actorId, si alguna de estas filas ya está en escalado_humano
+    // por un humano real (no por este cron), esto pisa owner_changed_by a
+    // null y borra ese rastro — hallazgo aparte, no forma parte de esta fase.
+    await escalateManyToHuman(markedIds, "no_cerro")
+
+    const markedSet = new Set(markedIds)
+    for (const state of stale) {
+      if (!markedSet.has(state.id)) continue
+      // Fase 1: placeholder — igual que en closing-engine.ts, la integración
+      // real de WhatsApp se conecta después, a pedido explícito.
+      console.log(`[cron/check-no-response][ALERTA WHATSAPP - PLACEHOLDER] client_id=${state.client_id} conversation_id=${state.conversation_id} motivo=48hs_sin_respuesta`)
     }
-    // TODO: sin actorId, si esta fila ya está en escalado_humano por un humano real (no por este cron), esto pisa owner_changed_by a null y borra ese rastro — hallazgo aparte, no forma parte del bug #4.
-    await escalateToHuman(state.id, "no_cerro")
-    // Fase 1: placeholder — igual que en closing-engine.ts, la integración
-    // real de WhatsApp se conecta después, a pedido explícito.
-    console.log(`[cron/check-no-response][ALERTA WHATSAPP - PLACEHOLDER] client_id=${state.client_id} conversation_id=${state.conversation_id} motivo=48hs_sin_respuesta`)
-  }
 
-  return NextResponse.json({ escalated: (stale?.length ?? 0) - skipped, skipped, total: stale?.length ?? 0 })
+    return NextResponse.json({ escalated: markedIds.length, skipped, total: staleIds.length })
+  } catch (e) {
+    console.error(`[cron/check-no-response] Error inesperado: ${e instanceof Error ? e.message : e}`)
+    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+  }
 }

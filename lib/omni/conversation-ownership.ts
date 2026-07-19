@@ -79,6 +79,39 @@ export async function markNoCerro(stateId: string): Promise<boolean> {
   return (data?.length ?? 0) > 0
 }
 
+/** Versión batcheada de markNoCerro para el cron de 48hs — un solo UPDATE
+ *  con .in() en vez de un loop por fila. Mismo guard owner='ia_activa'.
+ *  Devuelve los ids que realmente se marcaron. */
+export async function markManyNoCerro(stateIds: string[]): Promise<string[]> {
+  if (stateIds.length === 0) return []
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from("ig_conversation_state")
+    .update({ etapa: "no_cerro" })
+    .in("id", stateIds)
+    .eq("owner", "ia_activa")
+    .select("id")
+  if (error) throw new Error(`No se pudo marcar no_cerro en batch: ${error.message}`)
+  return (data ?? []).map((r) => r.id)
+}
+
+/** Versión batcheada de escalateToHuman para el cron de 48hs. TODO: mismo
+ *  límite que la versión de a una — sin actorId, pisa owner_changed_by de
+ *  un humano real si la fila ya estaba en escalado_humano por otra vía.
+ *  Hallazgo aparte, no resuelto acá. */
+export async function escalateManyToHuman(stateIds: string[], reason: EscalationReason): Promise<string[]> {
+  if (stateIds.length === 0) return []
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from("ig_conversation_state")
+    .update({ owner: "escalado_humano", owner_changed_at: new Date().toISOString(), owner_changed_by: null })
+    .in("id", stateIds)
+    .neq("owner", "cerrado")
+    .select("id")
+  if (error) throw new Error(`No se pudo escalar a humano en batch (${reason}): ${error.message}`)
+  return (data ?? []).map((r) => r.id)
+}
+
 /**
  * Dedupe antes de prospección fría — excluye leads que ya tienen una
  * conversación en curso (IA respondiendo o escalada a humano) de cualquier

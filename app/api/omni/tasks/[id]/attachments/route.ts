@@ -48,6 +48,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const path = `${ctx.clientId}/${id}/${Date.now()}-${safeName}`
 
   const supabase = createServiceClient()
+
+  const { data: task } = await supabase.from("kanban_tasks").select("id").eq("id", id).eq("client_id", ctx.clientId).maybeSingle()
+  if (!task) return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 })
+
   const { error: uploadError } = await supabase.storage
     .from("kanban-attachments")
     .upload(path, await file.arrayBuffer(), { contentType: file.type })

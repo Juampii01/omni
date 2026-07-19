@@ -34,6 +34,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (body.length > 2000) return NextResponse.json({ error: "Máximo 2000 caracteres" }, { status: 400 })
 
   const supabase = createServiceClient()
+
+  const { data: task } = await supabase.from("kanban_tasks").select("id").eq("id", id).eq("client_id", ctx.clientId).maybeSingle()
+  if (!task) return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 })
+
   const { data, error } = await supabase
     .from("kanban_comments")
     .insert({ task_id: id, client_id: ctx.clientId, author_id: ctx.user.id, body })

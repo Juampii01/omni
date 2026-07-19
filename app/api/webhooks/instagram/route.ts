@@ -58,6 +58,8 @@ interface WebhookPayload {
   entry?: Array<{ id?: string; messaging?: MessagingEntry[] }>
 }
 
+const MIN_AI_TRIGGER_INTERVAL_MS = 10_000
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
 
@@ -193,7 +195,7 @@ async function handleMessagingEvent(messaging: MessagingEntry): Promise<void> {
   // la ventana de 24hs".
   const { data: existingState } = await supabase
     .from("ig_conversation_state")
-    .select("id, client_id, conversation_id, instagram_user_id, owner")
+    .select("id, client_id, conversation_id, instagram_user_id, owner, last_lead_message_at")
     .eq("conversation_id", conv.id)
     .neq("owner", "cerrado")
     .maybeSingle()
@@ -203,7 +205,7 @@ async function handleMessagingEvent(messaging: MessagingEntry): Promise<void> {
     const { data: created, error: createError } = await supabase
       .from("ig_conversation_state")
       .insert({ client_id: clientId, conversation_id: conv.id, instagram_user_id: senderId, owner: "ia_activa" })
-      .select("id, client_id, conversation_id, instagram_user_id, owner")
+      .select("id, client_id, conversation_id, instagram_user_id, owner, last_lead_message_at")
       .single()
     if (createError || !created) {
       console.error(`[webhooks/instagram] No se pudo crear ig_conversation_state: ${createError?.message}`)
@@ -212,9 +214,22 @@ async function handleMessagingEvent(messaging: MessagingEntry): Promise<void> {
     state = created
   }
 
+  const previousLastLeadMessageAt = state.last_lead_message_at
   await supabase.from("ig_conversation_state").update({ last_lead_message_at: new Date().toISOString() }).eq("id", state.id)
 
   if (state.owner !== "ia_activa") return // escalado_humano o sin_reclamar sin reclamar todavía — la IA no responde
+
+  // Rate limit por conversación: si el mensaje anterior de este lead llegó
+  // hace menos de MIN_AI_TRIGGER_INTERVAL_MS, no disparamos la IA para
+  // este mensaje puntual — ya quedó guardado en instagram_messages más
+  // arriba, no se pierde. El próximo mensaje que llegue pasada la ventana
+  // va a leer todo el historial acumulado y responder de una. Evita que
+  // una ráfaga (2 humanos escribiendo rápido, o un script abusivo) dispare
+  // una llamada a Claude por cada mensaje individual.
+  if (previousLastLeadMessageAt && Date.now() - new Date(previousLastLeadMessageAt).getTime() < MIN_AI_TRIGGER_INTERVAL_MS) {
+    console.log(`[webhooks/instagram] Mensaje dentro de la ventana de rate limit (${MIN_AI_TRIGGER_INTERVAL_MS / 1000}s) — no se dispara la IA. state_id=${state.id}`)
+    return
+  }
 
   await processIncomingLeadMessage(state)
 }
