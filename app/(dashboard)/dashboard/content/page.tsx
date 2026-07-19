@@ -21,17 +21,42 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 
 type Idea = { id: string; channel: string; title: string; format: string | null; hook: string | null; notes: string | null; status: string }
 type Competitor = { id: string; channel: string; name: string | null; handle: string | null; url: string | null; notes: string | null }
 type CalendarItem = { id: string; idea_id: string | null; scheduled_date: string; status: string }
-type Script = { id: string; idea_id: string; script_type: string; script: { hook: string; body: string; cta: string; visual_notes: string } }
+type ScriptType = "full_script" | "hook" | "story_beats"
+type Script =
+  | {
+      id: string
+      idea_id: string
+      script_type: "full_script"
+      script: { hook: string; body: string; cta: string; visual_notes: string; timing: { hook: string; body: string; cta: string } }
+    }
+  | { id: string; idea_id: string; script_type: "hook"; script: { hooks: string[] } }
+  | { id: string; idea_id: string; script_type: "story_beats"; script: { beats: Array<{ content: string; visual_note: string }> } }
 
 function ChannelIcon({ channel }: { channel: string }) {
   return channel === "youtube" ? <Video className="h-3.5 w-3.5" /> : <AtSign className="h-3.5 w-3.5" />
 }
 
-function IdeaCard({ idea, onDelete, onGenerateScript, scripts }: { idea: Idea; onDelete: (id: string) => void; onGenerateScript: (idea: Idea) => void; scripts: Script[] }) {
+function IdeaCard({
+  idea,
+  onDelete,
+  onGenerateScript,
+  scripts,
+}: {
+  idea: Idea
+  onDelete: (id: string) => void
+  onGenerateScript: (idea: Idea, scriptType: ScriptType) => void
+  scripts: Script[]
+}) {
   const ideaScripts = scripts.filter((s) => s.idea_id === idea.id)
   return (
     <Card>
@@ -51,14 +76,60 @@ function IdeaCard({ idea, onDelete, onGenerateScript, scripts }: { idea: Idea; o
         {idea.notes && <p className="text-xs text-muted-foreground">{idea.notes}</p>}
         {ideaScripts.map((s) => (
           <div key={s.id} className="rounded-lg border border-border/50 p-2.5 text-xs">
-            <p><span className="font-medium">Hook:</span> {s.script.hook}</p>
-            <p className="mt-1"><span className="font-medium">Cuerpo:</span> {s.script.body}</p>
-            <p className="mt-1"><span className="font-medium">CTA:</span> {s.script.cta}</p>
+            {s.script_type === "full_script" && (
+              <>
+                <p>
+                  <span className="font-medium">Hook</span> <span className="text-muted-foreground">({s.script.timing.hook})</span>: {s.script.hook}
+                </p>
+                <p className="mt-1">
+                  <span className="font-medium">Cuerpo</span> <span className="text-muted-foreground">({s.script.timing.body})</span>: {s.script.body}
+                </p>
+                <p className="mt-1">
+                  <span className="font-medium">CTA</span> <span className="text-muted-foreground">({s.script.timing.cta})</span>: {s.script.cta}
+                </p>
+                <p className="mt-2 border-t border-border/40 pt-2 text-muted-foreground">
+                  <span className="font-medium text-foreground">Notas visuales:</span> {s.script.visual_notes}
+                </p>
+              </>
+            )}
+            {s.script_type === "hook" && (
+              <div className="space-y-1">
+                <p className="font-medium">Variantes de hook</p>
+                {s.script.hooks.map((h, i) => (
+                  <p key={i} className="text-muted-foreground">
+                    {i + 1}. {h}
+                  </p>
+                ))}
+              </div>
+            )}
+            {s.script_type === "story_beats" && (
+              <div className="space-y-2">
+                {s.script.beats.map((b, i) => (
+                  <div key={i}>
+                    <p>
+                      <span className="font-medium">Beat {i + 1}:</span> {b.content}
+                    </p>
+                    <p className="text-muted-foreground">{b.visual_note}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
-        <Button size="sm" variant="secondary" onClick={() => onGenerateScript(idea)}>
-          <FileText className="h-3.5 w-3.5" /> Generar guión
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button size="sm" variant="secondary">
+                <FileText className="h-3.5 w-3.5" /> Generar guión
+              </Button>
+            }
+          />
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => onGenerateScript(idea, "full_script")}>Guion completo</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onGenerateScript(idea, "hook")}>Solo hook</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onGenerateScript(idea, "story_beats")}>Story beats</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardContent>
     </Card>
   )
@@ -112,9 +183,9 @@ export default function ContentPage() {
     toast.success("5 ideas generadas")
   }
 
-  async function handleGenerateScript(idea: Idea) {
+  async function handleGenerateScript(idea: Idea, scriptType: ScriptType) {
     toast.loading("Generando guión…", { id: "script-gen" })
-    const res = await fetchWithAuth("/api/omni/content/scripts/generate", { method: "POST", body: JSON.stringify({ ideaId: idea.id, scriptType: "full_script" }) })
+    const res = await fetchWithAuth("/api/omni/content/scripts/generate", { method: "POST", body: JSON.stringify({ ideaId: idea.id, scriptType }) })
     const data = await res.json()
     toast.dismiss("script-gen")
     if (!res.ok) {

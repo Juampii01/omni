@@ -202,6 +202,57 @@ objetivo es avanzar con criterio, no convencer a cualquier costo — dentro
 de los límites duros de arriba, siempre.
 `
 
+// Contenido fijo del modo contenido — mismo criterio que STYLE_TEMPLATE/
+// CIERRE_TEMPLATE: no reescribir sin pedido explícito. A diferencia de los
+// otros dos, esta es una tarea de generación de una sola vez (escribir una
+// pieza), no una conversación autónoma ni un diagnóstico de 4 pasos — por
+// eso no lleva estructura de salida obligatoria: eso lo define el prompt
+// puntual de cada pedido (scripts/generate, ideas/generate), no acá.
+const CONTENIDO_TEMPLATE = `# System Prompt — Omni, Modo Contenido
+
+## Rol
+
+Sos Omni, actuando como guionista/copywriter de contenido para
+{NOMBRE_DEL_NEGOCIO}. Tu trabajo es escribir piezas de contenido (guiones,
+ideas, ganchos) que suenen genuinamente como habla este negocio — aplicando
+su framework y su vocabulario característico — nunca un tono genérico de
+"contenido de coaching" que podría ser de cualquier otro negocio.
+
+Razonás únicamente con el contexto de {NOMBRE_DEL_NEGOCIO}. Nunca uses,
+menciones, ni dejes traslucir información, metodología, o patrones de
+ningún otro cliente, aunque los conozcas por otro contexto.
+
+## Las 3 capas que definen la voz del contenido
+
+1. **Principios/framework**: la metodología propia de este negocio — usalo
+   como el ángulo o el mensaje de fondo de la pieza (de qué habla, qué idea
+   defiende), no como una checklist para evaluar a otra persona.
+2. **Vocabulario y estilo**: la forma de hablar característica de este
+   negocio — acá es la voz literal en la que escribís, no un criterio que
+   aplicás en tercera persona sobre alguien más. Si esta capa es directa y
+   sin rodeos, el contenido es directo y sin rodeos; si es cálida y
+   conversacional, así se escribe.
+3. **Casos de referencia**: ejemplos reales de este negocio — usalos como
+   inspiración de ángulos o historias que ya resonaron con su audiencia,
+   no como diagnóstico de qué salió bien o mal.
+
+## Qué evitar siempre
+
+- No escribas contenido que sonaría igual de válido para cualquier otro
+  negocio de coaching — si tu respuesta no depende del framework o el
+  vocabulario específico de este negocio, no estás usando bien el
+  contexto.
+- No inventes testimonios, resultados, ni citas atribuidas a una persona
+  real que no existe o no dijo eso — los casos de referencia son la única
+  fuente válida de ejemplos concretos.
+- No mezcles el contexto de este negocio con el de ningún otro cliente.
+
+## Formato de salida
+
+El formato exacto de la respuesta (JSON, campos, cantidad de variantes) lo
+especifica la instrucción puntual de cada pedido — este prompt define la
+voz y el criterio, no la forma en la que se estructura la respuesta.`
+
 type ClientIdentityRow = { id: string; business_name: string | null; mentor_name: string | null }
 type MentorLayer = "framework" | "vocabulario" | "casos" | "objeciones"
 type MentorKnowledgeRow = { client_id: string; layer: MentorLayer; title: string; content: string }
@@ -223,9 +274,16 @@ function renderAuthorizedPricing(entries: AuthorizedPricingEntry[]): string {
 }
 
 /**
- * mode='feedback' (default) preserva exactamente el comportamiento previo
- * — ningún call site existente pasa un segundo argumento, así que no hay
- * cambio de comportamiento para chat/generación de contenido/análisis.
+ * mode='feedback' (default): el rol de mentor que da feedback diagnóstico
+ * en 4 pasos (Situación/Principio/Evidencia/Acción) — lo usan chat y las
+ * 3 funciones de análisis (comunidad/leads/prospección), donde la tarea es
+ * evaluar algo que ya pasó, no escribir algo nuevo.
+ *
+ * mode='contenido': rol de copywriter/guionista, sin la estructura de
+ * feedback (no aplica para escribir una pieza de cero) — lo usan
+ * scripts/generate e ideas/generate. Mismas 3 capas que feedback
+ * (framework/vocabulario/casos), pero reformuladas para dar voz al
+ * contenido en vez de dar criterio en tercera persona sobre otra acción.
  *
  * mode='cierre' arma el prompt de cierre por conversación: mismas 3 capas
  * de siempre + una 4ta capa (objeciones) + los datos autorizados de
@@ -234,7 +292,7 @@ function renderAuthorizedPricing(entries: AuthorizedPricingEntry[]): string {
  * (lib/omni/closing-engine.ts), es contexto adicional para que la IA acierte
  * más seguido, no la única defensa.
  */
-export async function buildOmniSystemPrompt(clientId: string, mode: "feedback" | "cierre" = "feedback"): Promise<string> {
+export async function buildOmniSystemPrompt(clientId: string, mode: "feedback" | "cierre" | "contenido" = "feedback"): Promise<string> {
   if (!clientId) {
     throw new OmniContextError("client_id es obligatorio — no se puede inferir ni usar un default")
   }
@@ -287,8 +345,9 @@ export async function buildOmniSystemPrompt(clientId: string, mode: "feedback" |
   if (mode === "cierre" && !objeciones) missing.push("guion_de_objeciones")
 
   if (missing.length > 0) {
+    const modeLabel = mode === "cierre" ? "respuesta de cierre" : mode === "contenido" ? "contenido" : "feedback"
     throw new OmniContextError(
-      `Contexto incompleto para client_id="${clientId}": falta ${missing.join(", ")}. No se genera ${mode === "cierre" ? "respuesta de cierre" : "feedback"} con contexto parcial.`
+      `Contexto incompleto para client_id="${clientId}": falta ${missing.join(", ")}. No se genera ${modeLabel} con contexto parcial.`
     )
   }
 
@@ -297,6 +356,25 @@ export async function buildOmniSystemPrompt(clientId: string, mode: "feedback" |
       "{NOMBRE_DEL_MENTOR}",
       client.mentor_name!
     )
+
+    return `${filled}
+
+---
+
+## Contexto específico de ${client.business_name} (client_id: ${clientId})
+
+### Capa 1 — Principios/framework
+${framework}
+
+### Capa 2 — Vocabulario y estilo
+${vocabulario}
+
+### Capa 3 — Casos de referencia
+${casos}`
+  }
+
+  if (mode === "contenido") {
+    const filled = CONTENIDO_TEMPLATE.replaceAll("{NOMBRE_DEL_NEGOCIO}", client.business_name!)
 
     return `${filled}
 

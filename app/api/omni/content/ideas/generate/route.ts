@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   let systemPrompt: string
   try {
-    systemPrompt = await buildOmniSystemPrompt(ctx.clientId)
+    systemPrompt = await buildOmniSystemPrompt(ctx.clientId, "contenido")
   } catch (e) {
     const msg = e instanceof OmniContextError ? e.message : "Error armando el contexto de Omni"
     return NextResponse.json({ error: msg }, { status: 422 })

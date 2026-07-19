@@ -9,6 +9,62 @@ function getJwt(req: NextRequest) {
   return header?.startsWith("Bearer ") ? header.slice(7) : null
 }
 
+const VALID_SCRIPT_TYPES = ["full_script", "hook", "story_beats"] as const
+type ScriptType = (typeof VALID_SCRIPT_TYPES)[number]
+
+type IdeaRow = { title: string; hook: string | null; format: string | null; notes: string | null }
+
+function buildPrompt(scriptType: ScriptType, idea: IdeaRow): string {
+  const ideaBlock = `IDEA:
+Título: ${idea.title}
+Hook: ${idea.hook ?? ""}
+Formato: ${idea.format ?? ""}
+Notas: ${idea.notes ?? ""}`
+
+  if (scriptType === "hook") {
+    return `Sos guionista profesional de contenido digital para este negocio.
+
+${ideaBlock}
+
+Generá 5 variantes distintas de gancho inicial (primeros 3 segundos) para esta idea — cada una con un ángulo o enfoque distinto entre sí (pregunta directa, dato/cifra concreta, afirmación fuerte, historia corta, etc.), todas en la voz de este negocio.
+
+Devolvé SOLO un JSON con esta forma exacta:
+{ "hooks": ["variante 1", "variante 2", "variante 3", "variante 4", "variante 5"] }
+
+Sin markdown, sin texto adicional.`
+  }
+
+  if (scriptType === "story_beats") {
+    return `Sos guionista profesional de contenido digital para este negocio.
+
+${ideaBlock}
+
+Generá una secuencia de beats narrativos para esta idea — entre 4 y 7 beats, en el orden en que aparecen. No es un guión lineal con timing: cada beat es un momento narrativo distinto (una idea, giro o punto por beat, no una oración suelta de un guión continuo).
+
+Devolvé SOLO un JSON con esta forma exacta:
+{ "beats": [{ "content": "qué se dice o pasa en este beat", "visual_note": "shot/imagen específica para este beat" }] }
+
+Sin markdown, sin texto adicional.`
+  }
+
+  return `Sos guionista profesional de contenido digital para este negocio.
+
+${ideaBlock}
+
+Generá un guión completo de 30 segundos.
+
+Devolvé SOLO un JSON con esta forma exacta:
+{
+  "hook": "primeros 3 segundos",
+  "body": "desarrollo del concepto",
+  "cta": "llamado a la acción",
+  "visual_notes": "descripción visual/shots",
+  "timing": {"hook": "0-3s", "body": "3-25s", "cta": "25-30s"}
+}
+
+Sin markdown, sin texto adicional.`
+}
+
 export async function POST(req: NextRequest) {
   const ctx = await requireAuth(getJwt(req))
   if (!ctx || !ctx.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -17,7 +73,9 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: "Falta ANTHROPIC_API_KEY en el servidor" }, { status: 503 })
 
   const { ideaId, scriptType } = await req.json()
-  if (!ideaId || !scriptType) return NextResponse.json({ error: "ideaId y scriptType son obligatorios" }, { status: 400 })
+  if (!ideaId || !scriptType || !VALID_SCRIPT_TYPES.includes(scriptType)) {
+    return NextResponse.json({ error: `ideaId es obligatorio y scriptType debe ser uno de: ${VALID_SCRIPT_TYPES.join(", ")}` }, { status: 400 })
+  }
 
   const supabase = createServiceClient()
 
@@ -33,39 +91,21 @@ export async function POST(req: NextRequest) {
 
   let systemPrompt: string
   try {
-    systemPrompt = await buildOmniSystemPrompt(ctx.clientId)
+    systemPrompt = await buildOmniSystemPrompt(ctx.clientId, "contenido")
   } catch (e) {
     const msg = e instanceof OmniContextError ? e.message : "Error armando el contexto de Omni"
     return NextResponse.json({ error: msg }, { status: 422 })
   }
 
-  const prompt = `Sos guionista profesional de contenido digital para este negocio.
-
-IDEA:
-Título: ${idea.title}
-Hook: ${idea.hook ?? ""}
-Formato: ${idea.format ?? ""}
-Notas: ${idea.notes ?? ""}
-
-Generá un guión tipo "${scriptType}" de 30 segundos.
-
-Devolvé SOLO un JSON con esta forma exacta:
-{
-  "hook": "primeros 3 segundos",
-  "body": "desarrollo del concepto",
-  "cta": "llamado a la acción",
-  "visual_notes": "descripción visual/shots",
-  "timing": {"hook": "0-3s", "body": "3-25s", "cta": "25-30s"}
-}
-
-Sin markdown, sin texto adicional.`
+  const prompt = buildPrompt(scriptType, idea)
+  const maxTokens = scriptType === "story_beats" ? 2000 : 1200
 
   const anthropic = new Anthropic({ apiKey })
   let raw: string
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
-      max_tokens: 1200,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
     })
