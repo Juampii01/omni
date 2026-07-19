@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 type KnowledgeEntry = {
   id: string
-  layer: "framework" | "vocabulario" | "casos"
+  layer: "framework" | "vocabulario" | "casos" | "objeciones"
   title: string
   content: string
 }
@@ -21,6 +21,7 @@ const LAYERS: Array<{ key: KnowledgeEntry["layer"]; label: string; hint: string 
   { key: "framework", label: "Principios / framework", hint: "Reglas concretas de cómo debería operar este negocio." },
   { key: "vocabulario", label: "Vocabulario y estilo", hint: "La forma de hablar característica de la metodología." },
   { key: "casos", label: "Casos de referencia", hint: "Ejemplos reales de qué salió bien y qué salió mal." },
+  { key: "objeciones", label: "Guion de objeciones", hint: "Los reencuadres específicos de este negocio para las objeciones típicas de su audiencia." },
 ]
 
 function LayerColumn({
@@ -143,8 +144,8 @@ export default function MentorPage() {
       <div className="space-y-6">
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-40 rounded-2xl" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-64 rounded-2xl" />
           ))}
         </div>
@@ -182,7 +183,7 @@ export default function MentorPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {LAYERS.map((l) => (
           <LayerColumn
             key={l.key}

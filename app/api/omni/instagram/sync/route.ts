@@ -16,12 +16,12 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
   const { data: config, error: configError } = await supabase
     .from("client_config")
-    .select("ig_access_token, ig_account_username")
+    .select("ig_access_token, ig_account_username, ig_account_id")
     .eq("client_id", ctx.clientId)
     .maybeSingle()
 
   if (configError) return NextResponse.json({ error: configError.message }, { status: 500 })
-  if (!config?.ig_access_token || !config.ig_account_username) {
+  if (!config?.ig_access_token || !config.ig_account_username || !config.ig_account_id) {
     return NextResponse.json({ error: "Instagram no está conectado" }, { status: 400 })
   }
 
@@ -38,12 +38,22 @@ export async function POST(req: NextRequest) {
   let messagesSynced = 0
 
   for (const conv of conversations) {
+    if (!conv.participantIgId) {
+      console.error(`[omni/instagram/sync] Conversación sin participantIgId identificado — no se puede armar ig_conversation_id de forma consistente con el webhook, se saltea. ig_conversation_id_meta=${conv.id}`)
+      continue
+    }
+    // Mismo formato sintético que ya usa el webhook (senderId_recipientId,
+    // lead primero, negocio segundo) — así ambos caminos matchean la misma
+    // fila en vez de crear duplicados. conv.id (el id real de Meta) sigue
+    // haciendo falta más abajo para fetchIgMessages, que sí le pega a la
+    // Graph API con el id real — no se toca esa parte.
+    const igConversationId = `${conv.participantIgId}_${config.ig_account_id}`
     const { data: convRow, error: convError } = await supabase
       .from("instagram_conversations")
       .upsert(
         {
           client_id: ctx.clientId,
-          ig_conversation_id: conv.id,
+          ig_conversation_id: igConversationId,
           participant_username: conv.participantUsername,
           participant_ig_id: conv.participantIgId,
           synced_at: new Date().toISOString(),

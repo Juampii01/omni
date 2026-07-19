@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!ctx || !ctx.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { layer, title, content } = await req.json()
-  if (!["framework", "vocabulario", "casos"].includes(layer)) {
+  if (!["framework", "vocabulario", "casos", "objeciones"].includes(layer)) {
     return NextResponse.json({ error: "layer inválido" }, { status: 400 })
   }
   if (!title?.trim() || !content?.trim()) {
