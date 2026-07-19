@@ -201,7 +201,7 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
             <button
               aria-label="Abrir menú"
               onClick={() => setMobileNavOpen(true)}
-              className="shrink-0 text-foreground/70 md:hidden"
+              className="shrink-0 -m-2 p-2 text-foreground/70 md:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>

@@ -193,7 +193,7 @@ function NewWorkflowDialog({ onCreated }: { onCreated: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button><Plus /> Nuevo workflow</Button>} />
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[85vh] sm:max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nuevo workflow</DialogTitle>
           <DialogDescription>Elegí qué lo dispara y qué hace cuando se dispara.</DialogDescription>
@@ -331,7 +331,7 @@ export default function AutomationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl">Automatizaciones</h1>
           <p className="mt-1 text-sm text-muted-foreground">Disparadores y acciones automáticas — el motor corre cada 5 minutos.</p>
