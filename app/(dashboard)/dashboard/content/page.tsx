@@ -46,15 +46,46 @@ function ChannelIcon({ channel }: { channel: string }) {
   return channel === "youtube" ? <Video className="h-3.5 w-3.5" /> : <AtSign className="h-3.5 w-3.5" />
 }
 
+/** Editable inline con autoguardado al perder foco — mismo patrón que ya
+ *  usa la página de Mentor, sin botón de "Guardar" explícito. Solo llama
+ *  a onSave si el valor realmente cambió. */
+function EditableField({
+  value,
+  onSave,
+  multiline,
+  className,
+}: {
+  value: string
+  onSave: (value: string) => void
+  multiline?: boolean
+  className?: string
+}) {
+  const [draft, setDraft] = useState(value)
+
+  useEffect(() => setDraft(value), [value])
+
+  function handleBlur() {
+    if (draft !== value) onSave(draft)
+  }
+
+  return multiline ? (
+    <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={handleBlur} rows={2} className={className} />
+  ) : (
+    <Input value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={handleBlur} className={className} />
+  )
+}
+
 function IdeaCard({
   idea,
   onDelete,
   onGenerateScript,
+  onUpdateScript,
   scripts,
 }: {
   idea: Idea
   onDelete: (id: string) => void
   onGenerateScript: (idea: Idea, scriptType: ScriptType) => void
+  onUpdateScript: (scriptId: string, newContent: Script["script"]) => void
   scripts: Script[]
 }) {
   const ideaScripts = scripts.filter((s) => s.idea_id === idea.id)
@@ -77,28 +108,43 @@ function IdeaCard({
         {ideaScripts.map((s) => (
           <div key={s.id} className="rounded-lg border border-border/50 p-2.5 text-xs">
             {s.script_type === "full_script" && (
-              <>
-                <p>
-                  <span className="font-medium">Hook</span> <span className="text-muted-foreground">({s.script.timing.hook})</span>: {s.script.hook}
-                </p>
-                <p className="mt-1">
-                  <span className="font-medium">Cuerpo</span> <span className="text-muted-foreground">({s.script.timing.body})</span>: {s.script.body}
-                </p>
-                <p className="mt-1">
-                  <span className="font-medium">CTA</span> <span className="text-muted-foreground">({s.script.timing.cta})</span>: {s.script.cta}
-                </p>
-                <p className="mt-2 border-t border-border/40 pt-2 text-muted-foreground">
-                  <span className="font-medium text-foreground">Notas visuales:</span> {s.script.visual_notes}
-                </p>
-              </>
+              <div className="space-y-2">
+                <div>
+                  <span className="font-medium">Hook</span> <span className="text-muted-foreground">({s.script.timing.hook})</span>
+                  <EditableField multiline value={s.script.hook} onSave={(v) => onUpdateScript(s.id, { ...s.script, hook: v })} />
+                </div>
+                <div>
+                  <span className="font-medium">Cuerpo</span> <span className="text-muted-foreground">({s.script.timing.body})</span>
+                  <EditableField multiline value={s.script.body} onSave={(v) => onUpdateScript(s.id, { ...s.script, body: v })} />
+                </div>
+                <div>
+                  <span className="font-medium">CTA</span> <span className="text-muted-foreground">({s.script.timing.cta})</span>
+                  <EditableField multiline value={s.script.cta} onSave={(v) => onUpdateScript(s.id, { ...s.script, cta: v })} />
+                </div>
+                <div className="border-t border-border/40 pt-2">
+                  <span className="font-medium">Notas visuales</span>
+                  <EditableField
+                    multiline
+                    className="text-muted-foreground"
+                    value={s.script.visual_notes}
+                    onSave={(v) => onUpdateScript(s.id, { ...s.script, visual_notes: v })}
+                  />
+                </div>
+              </div>
             )}
             {s.script_type === "hook" && (
               <div className="space-y-1">
                 <p className="font-medium">Variantes de hook</p>
                 {s.script.hooks.map((h, i) => (
-                  <p key={i} className="text-muted-foreground">
-                    {i + 1}. {h}
-                  </p>
+                  <EditableField
+                    key={i}
+                    value={h}
+                    onSave={(v) => {
+                      const hooks = [...s.script.hooks]
+                      hooks[i] = v
+                      onUpdateScript(s.id, { hooks })
+                    }}
+                  />
                 ))}
               </div>
             )}
@@ -106,10 +152,24 @@ function IdeaCard({
               <div className="space-y-2">
                 {s.script.beats.map((b, i) => (
                   <div key={i}>
-                    <p>
-                      <span className="font-medium">Beat {i + 1}:</span> {b.content}
-                    </p>
-                    <p className="text-muted-foreground">{b.visual_note}</p>
+                    <span className="font-medium">Beat {i + 1}</span>
+                    <EditableField
+                      multiline
+                      value={b.content}
+                      onSave={(v) => {
+                        const beats = s.script.beats.map((beat, idx) => (idx === i ? { ...beat, content: v } : beat))
+                        onUpdateScript(s.id, { beats })
+                      }}
+                    />
+                    <EditableField
+                      multiline
+                      className="text-muted-foreground"
+                      value={b.visual_note}
+                      onSave={(v) => {
+                        const beats = s.script.beats.map((beat, idx) => (idx === i ? { ...beat, visual_note: v } : beat))
+                        onUpdateScript(s.id, { beats })
+                      }}
+                    />
                   </div>
                 ))}
               </div>
@@ -162,11 +222,17 @@ export default function ContentPage() {
     const data = await res.json()
     setCalendar(data.items ?? [])
   }
+  async function loadScripts() {
+    const res = await fetchWithAuth("/api/omni/content/scripts")
+    const data = await res.json()
+    setScripts(data.items ?? [])
+  }
 
   useEffect(() => {
     loadIdeas()
     loadCompetitors()
     loadCalendar()
+    loadScripts()
   }, [])
 
   async function handleGenerateIdeas() {
@@ -194,6 +260,15 @@ export default function ContentPage() {
     }
     setScripts((prev) => [...prev, data.script])
     toast.success("Guión generado")
+  }
+
+  async function handleUpdateScript(scriptId: string, newContent: Script["script"]) {
+    const res = await fetchWithAuth(`/api/omni/content/scripts/${scriptId}`, { method: "PATCH", body: JSON.stringify({ script: newContent }) })
+    if (!res.ok) {
+      toast.error("No se pudo guardar el cambio")
+      return
+    }
+    setScripts((prev) => prev.map((sc) => (sc.id === scriptId ? ({ ...sc, script: newContent } as Script) : sc)))
   }
 
   async function handleDeleteIdea(id: string) {
@@ -262,7 +337,14 @@ export default function ContentPage() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ideas.map((idea) => (
-                <IdeaCard key={idea.id} idea={idea} onDelete={handleDeleteIdea} onGenerateScript={handleGenerateScript} scripts={scripts} />
+                <IdeaCard
+                  key={idea.id}
+                  idea={idea}
+                  onDelete={handleDeleteIdea}
+                  onGenerateScript={handleGenerateScript}
+                  onUpdateScript={handleUpdateScript}
+                  scripts={scripts}
+                />
               ))}
             </div>
           )}
