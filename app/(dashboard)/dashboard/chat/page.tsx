@@ -9,6 +9,7 @@ import { useSession } from "@/lib/auth/use-session"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Markdown } from "@/components/ui/markdown"
 
 type ChatMessage = { role: "user" | "assistant"; content: string }
 
@@ -106,7 +107,7 @@ export default function ChatPage() {
                   m.role === "user" ? "bg-primary text-primary-foreground" : "border border-border/60 bg-card"
                 }`}
               >
-                {m.content}
+                {m.role === "assistant" ? <Markdown>{m.content}</Markdown> : m.content}
               </div>
             </motion.div>
           ))}
