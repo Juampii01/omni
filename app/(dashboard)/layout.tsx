@@ -38,6 +38,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       })
   }, [session])
 
+  async function handleExitViewAs() {
+    await fetchWithAuth("/api/admin/view-as", { method: "DELETE" })
+    router.push("/admin")
+  }
+
   if (loading || !session || !session.clientId || !onboardingChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Cargando…</div>
@@ -45,7 +50,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (needsOnboarding) {
-    return <OnboardingWizard onComplete={() => setNeedsOnboarding(false)} />
+    return (
+      <>
+        {session.viewingAs && (
+          <div className="flex items-center justify-between gap-2 bg-primary/15 px-4 py-2 text-xs text-primary md:px-8">
+            <span className="truncate">Viendo como: {session.clientName}</span>
+            <button onClick={handleExitViewAs} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">
+              Volver a admin
+            </button>
+          </div>
+        )}
+        <OnboardingWizard onComplete={() => setNeedsOnboarding(false)} />
+      </>
+    )
   }
 
   return <DashboardShell session={session}>{children}</DashboardShell>

@@ -110,23 +110,23 @@ function IdeaCard({
             {s.script_type === "full_script" && (
               <div className="space-y-2">
                 <div>
-                  <span className="font-medium">Hook</span> <span className="text-muted-foreground">({s.script.timing.hook})</span>
-                  <EditableField multiline value={s.script.hook} onSave={(v) => onUpdateScript(s.id, { ...s.script, hook: v })} />
+                  <span className="font-medium">Hook</span> <span className="text-muted-foreground">({s.script.timing?.hook ?? "?"})</span>
+                  <EditableField multiline value={s.script.hook ?? ""} onSave={(v) => onUpdateScript(s.id, { ...s.script, hook: v })} />
                 </div>
                 <div>
-                  <span className="font-medium">Cuerpo</span> <span className="text-muted-foreground">({s.script.timing.body})</span>
-                  <EditableField multiline value={s.script.body} onSave={(v) => onUpdateScript(s.id, { ...s.script, body: v })} />
+                  <span className="font-medium">Cuerpo</span> <span className="text-muted-foreground">({s.script.timing?.body ?? "?"})</span>
+                  <EditableField multiline value={s.script.body ?? ""} onSave={(v) => onUpdateScript(s.id, { ...s.script, body: v })} />
                 </div>
                 <div>
-                  <span className="font-medium">CTA</span> <span className="text-muted-foreground">({s.script.timing.cta})</span>
-                  <EditableField multiline value={s.script.cta} onSave={(v) => onUpdateScript(s.id, { ...s.script, cta: v })} />
+                  <span className="font-medium">CTA</span> <span className="text-muted-foreground">({s.script.timing?.cta ?? "?"})</span>
+                  <EditableField multiline value={s.script.cta ?? ""} onSave={(v) => onUpdateScript(s.id, { ...s.script, cta: v })} />
                 </div>
                 <div className="border-t border-border/40 pt-2">
                   <span className="font-medium">Notas visuales</span>
                   <EditableField
                     multiline
                     className="text-muted-foreground"
-                    value={s.script.visual_notes}
+                    value={s.script.visual_notes ?? ""}
                     onSave={(v) => onUpdateScript(s.id, { ...s.script, visual_notes: v })}
                   />
                 </div>
@@ -135,12 +135,12 @@ function IdeaCard({
             {s.script_type === "hook" && (
               <div className="space-y-1">
                 <p className="font-medium">Variantes de hook</p>
-                {s.script.hooks.map((h, i) => (
+                {(s.script.hooks ?? []).map((h, i) => (
                   <EditableField
                     key={i}
                     value={h}
                     onSave={(v) => {
-                      const hooks = [...s.script.hooks]
+                      const hooks = [...(s.script.hooks ?? [])]
                       hooks[i] = v
                       onUpdateScript(s.id, { hooks })
                     }}
@@ -150,14 +150,14 @@ function IdeaCard({
             )}
             {s.script_type === "story_beats" && (
               <div className="space-y-2">
-                {s.script.beats.map((b, i) => (
+                {(s.script.beats ?? []).map((b, i) => (
                   <div key={i}>
                     <span className="font-medium">Beat {i + 1}</span>
                     <EditableField
                       multiline
                       value={b.content}
                       onSave={(v) => {
-                        const beats = s.script.beats.map((beat, idx) => (idx === i ? { ...beat, content: v } : beat))
+                        const beats = (s.script.beats ?? []).map((beat, idx) => (idx === i ? { ...beat, content: v } : beat))
                         onUpdateScript(s.id, { beats })
                       }}
                     />
@@ -166,7 +166,7 @@ function IdeaCard({
                       className="text-muted-foreground"
                       value={b.visual_note}
                       onSave={(v) => {
-                        const beats = s.script.beats.map((beat, idx) => (idx === i ? { ...beat, visual_note: v } : beat))
+                        const beats = (s.script.beats ?? []).map((beat, idx) => (idx === i ? { ...beat, visual_note: v } : beat))
                         onUpdateScript(s.id, { beats })
                       }}
                     />

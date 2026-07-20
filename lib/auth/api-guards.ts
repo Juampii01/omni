@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { createServiceClient } from "@/lib/supabase-service"
 import { isInternal } from "@/lib/auth/permissions"
 
@@ -6,6 +7,8 @@ import { isInternal } from "@/lib/auth/permissions"
  *   const ctx = await requireAuth(jwt)
  *   if (!ctx) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
  */
+
+const VIEW_AS_COOKIE = "omni_view_as"
 
 async function getProfile(jwt: string | null) {
   if (!jwt) return null
@@ -18,11 +21,29 @@ async function getProfile(jwt: string | null) {
     .eq("id", user.id)
     .maybeSingle()
   if (!profile) return null
+
+  const isPlatformAdmin = (profile as any).is_platform_admin as boolean
+  let clientId = (profile as any).client_id as string | null
+  let viewingAs = false
+
+  // Un platform admin puede "entrar" a un cliente puntual desde /admin para
+  // inspeccionar/probar su dashboard — nunca al revés (un client_id normal
+  // jamás puede setear esto para sí mismo, ya que solo se lee la cookie
+  // después de confirmar is_platform_admin contra su propio profile).
+  if (isPlatformAdmin) {
+    const viewAsClientId = (await cookies()).get(VIEW_AS_COOKIE)?.value
+    if (viewAsClientId) {
+      clientId = viewAsClientId
+      viewingAs = true
+    }
+  }
+
   return {
     user,
     role: (profile as any).role as string,
-    clientId: (profile as any).client_id as string | null,
-    isPlatformAdmin: (profile as any).is_platform_admin as boolean,
+    clientId,
+    isPlatformAdmin,
+    viewingAs,
   }
 }
 

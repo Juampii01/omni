@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Users, Building2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Plus, Users, Building2, LogIn } from "lucide-react"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
@@ -29,12 +30,14 @@ type ClientRow = {
 }
 
 export default function AdminPage() {
+  const router = useRouter()
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [clientName, setClientName] = useState("")
   const [ownerEmail, setOwnerEmail] = useState("")
   const [ownerPassword, setOwnerPassword] = useState("")
   const [creating, setCreating] = useState(false)
+  const [entering, setEntering] = useState<string | null>(null)
 
   async function load() {
     const res = await fetchWithAuth("/api/admin/clients")
@@ -64,6 +67,17 @@ export default function AdminPage() {
     setOwnerEmail("")
     setOwnerPassword("")
     load()
+  }
+
+  async function handleEnter(id: string) {
+    setEntering(id)
+    const res = await fetchWithAuth("/api/admin/view-as", { method: "POST", body: JSON.stringify({ clientId: id }) })
+    if (!res.ok) {
+      toast.error("No se pudo entrar a ese cliente")
+      setEntering(null)
+      return
+    }
+    router.push("/dashboard")
   }
 
   return (
@@ -130,6 +144,9 @@ export default function AdminPage() {
                 <p className="text-xs text-muted-foreground">
                   Creado el {new Date(c.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
                 </p>
+                <Button variant="outline" size="sm" className="w-full" disabled={entering === c.id} onClick={() => handleEnter(c.id)}>
+                  <LogIn /> {entering === c.id ? "Entrando…" : "Entrar"}
+                </Button>
               </CardContent>
             </Card>
           ))}

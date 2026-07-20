@@ -12,6 +12,12 @@ export type SessionInfo = {
   clientName: string
   fullName: string | null
   isPlatformAdmin: boolean
+  viewingAs: boolean
+}
+
+function readCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
 }
 
 /** Sesión del usuario logueado + su client_id — todas las páginas del
@@ -43,7 +49,16 @@ export function useSession() {
         router.replace("/login")
         return
       }
-      const clientId = (profile as any).client_id as string | null
+      const isPlatformAdmin = (profile as any).is_platform_admin ?? false
+      let clientId = (profile as any).client_id as string | null
+      let viewingAs = false
+      if (isPlatformAdmin) {
+        const viewAsClientId = readCookie("omni_view_as")
+        if (viewAsClientId) {
+          clientId = viewAsClientId
+          viewingAs = true
+        }
+      }
       let clientName = ""
       if (clientId) {
         const { data: client } = await supabase.from("clients").select("name").eq("id", clientId).maybeSingle()
@@ -57,7 +72,8 @@ export function useSession() {
         clientId,
         clientName,
         fullName: (profile as any).full_name ?? null,
-        isPlatformAdmin: (profile as any).is_platform_admin ?? false,
+        isPlatformAdmin,
+        viewingAs,
       })
       setLoading(false)
     }

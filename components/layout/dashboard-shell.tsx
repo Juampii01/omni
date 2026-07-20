@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase"
+import { fetchWithAuth } from "@/lib/api-client"
 import type { SessionInfo } from "@/lib/auth/use-session"
 
 const NAV_GROUPS = [
@@ -92,6 +93,11 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
   useEffect(() => {
     setMobileNavOpen(false)
   }, [pathname])
+
+  async function handleExitViewAs() {
+    await fetchWithAuth("/api/admin/view-as", { method: "DELETE" })
+    router.push("/admin")
+  }
 
   async function handleLogout() {
     const supabase = createClient()
@@ -196,6 +202,14 @@ export function DashboardShell({ session, children }: { session: SessionInfo; ch
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {session.viewingAs && (
+          <div className="flex items-center justify-between gap-2 bg-primary/15 px-4 py-2 text-xs text-primary md:px-8">
+            <span className="truncate">Viendo como: {session.clientName}</span>
+            <button onClick={handleExitViewAs} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">
+              Volver a admin
+            </button>
+          </div>
+        )}
         <header className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-4 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
