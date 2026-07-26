@@ -6,16 +6,7 @@ import { fetchWithAuth } from "@/lib/api-client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
-
-const TABS = [
-  { key: "ubicacion", label: "Ubicación / cuenta", hint: "Dónde estás, tipo de cuenta, plataformas principales." },
-  { key: "sobre_vos", label: "Sobre vos", hint: "Quién sos, tu historia, tu experiencia." },
-  { key: "negocio", label: "Sobre tu negocio", hint: "Qué vendés, hace cuánto, modelo de negocio." },
-  { key: "numeros", label: "Los números", hint: "Facturación, ticket promedio, volumen de clientes." },
-  { key: "cliente_ideal", label: "Tu cliente ideal", hint: "A quién le hablás, qué le duele, qué busca." },
-  { key: "contenido", label: "Contenido / audiencia", hint: "Qué contenido hacés hoy, tamaño de audiencia." },
-  { key: "como_llegaste", label: "Cómo llegaste acá", hint: "Tu camino hasta este negocio." },
-] as const
+import { CONTEXT_TABS as TABS } from "@/lib/omni/context-tabs"
 
 type ContextData = Record<string, string>
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
 type KnowledgeEntry = {
@@ -15,6 +16,7 @@ type KnowledgeEntry = {
   layer: "framework" | "vocabulario" | "casos" | "objeciones"
   title: string
   content: string
+  is_active: boolean
 }
 
 const LAYERS: Array<{ key: KnowledgeEntry["layer"]; label: string; hint: string }> = [
@@ -31,6 +33,7 @@ function LayerColumn({
   entries,
   onAdd,
   onDelete,
+  onToggle,
 }: {
   label: string
   hint: string
@@ -38,6 +41,7 @@ function LayerColumn({
   entries: KnowledgeEntry[]
   onAdd: (layer: KnowledgeEntry["layer"], title: string, content: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onToggle: (id: string, next: boolean) => Promise<void>
 }) {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
@@ -63,13 +67,22 @@ function LayerColumn({
           <div key={entry.id} className="group rounded-lg border border-border/50 p-3">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium">{entry.title}</p>
-              <button
-                onClick={() => onDelete(entry.id)}
-                className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                aria-label="Eliminar"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge
+                  variant={entry.is_active ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => onToggle(entry.id, !entry.is_active)}
+                >
+                  {entry.is_active ? "Activo" : "Pausado"}
+                </Badge>
+                <button
+                  onClick={() => onDelete(entry.id)}
+                  className="text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">{entry.content}</p>
           </div>
@@ -139,6 +152,18 @@ export default function MentorPage() {
     toast.success("Entrada eliminada")
   }
 
+  async function handleToggle(id: string, next: boolean) {
+    const res = await fetchWithAuth(`/api/omni/mentor/knowledge/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: next }),
+    })
+    if (!res.ok) {
+      toast.error("No se pudo actualizar")
+      return
+    }
+    setKnowledge((prev) => prev.map((k) => (k.id === id ? { ...k, is_active: next } : k)))
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -193,6 +218,7 @@ export default function MentorPage() {
             entries={knowledge.filter((k) => k.layer === l.key)}
             onAdd={handleAdd}
             onDelete={handleDelete}
+            onToggle={handleToggle}
           />
         ))}
       </div>

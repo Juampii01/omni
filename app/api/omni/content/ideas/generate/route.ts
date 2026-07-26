@@ -27,30 +27,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 422 })
   }
 
-  const { data: businessContext } = await supabase
-    .from("client_business_context")
-    .select("context")
-    .eq("client_id", ctx.clientId)
-    .maybeSingle()
-
   const { data: competitors } = await supabase
     .from("content_competitors")
     .select("name, handle, notes")
     .eq("client_id", ctx.clientId)
     .limit(10)
 
-  const contextBlock = businessContext?.context
-    ? Object.entries(businessContext.context as Record<string, string>)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join("\n")
-    : "(sin cargar todavía)"
-
   const competitorsBlock = (competitors ?? []).map((c) => `- ${c.name ?? c.handle}: ${c.notes ?? ""}`).join("\n") || "(ninguno cargado)"
 
   const prompt = `Sos asistente creativo de contenido para este negocio. Generá 5 ideas de contenido para ${channel === "youtube" ? "YouTube" : "Instagram"}.
-
-PERFIL DE NEGOCIO:
-${contextBlock}
 
 COMPETIDORES DE REFERENCIA:
 ${competitorsBlock}

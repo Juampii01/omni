@@ -273,6 +273,24 @@ function renderAuthorizedPricing(entries: AuthorizedPricingEntry[]): string {
     .join("\n")
 }
 
+// Context Room (perfil de negocio) es explícitamente opcional — el
+// onboarding lo deja para después — así que nunca entra al array `missing`
+// más abajo. Si no hay nada cargado, se degrada al mismo fallback que ya
+// usaba antes app/api/omni/content/ideas/generate/route.ts.
+function renderBusinessContext(context: Record<string, string> | null): string {
+  if (!context || Object.keys(context).length === 0) return "(sin cargar todavía)"
+  return Object.entries(context)
+    .filter(([, v]) => v?.trim())
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join("\n")
+}
+
+const KNOWLEDGE_LAYERS_BY_MODE = {
+  feedback: ["framework", "vocabulario", "casos"],
+  contenido: ["framework", "vocabulario", "casos"],
+  cierre: ["framework", "vocabulario", "casos", "objeciones"],
+} as const
+
 /**
  * mode='feedback' (default): el rol de mentor que da feedback diagnóstico
  * en 4 pasos (Situación/Principio/Evidencia/Acción) — lo usan chat y las
@@ -299,27 +317,32 @@ export async function buildOmniSystemPrompt(clientId: string, mode: "feedback" |
 
   const supabase = createServiceClient()
 
-  const [clientRes, knowledgeRes, configRes] = await Promise.all([
+  const [clientRes, knowledgeRes, configRes, businessContextRes] = await Promise.all([
     supabase.from("clients").select("id, business_name, mentor_name").eq("id", clientId).maybeSingle(),
     supabase
       .from("client_mentor_knowledge")
       .select("client_id, layer, title, content")
       .eq("client_id", clientId)
       .eq("is_active", true)
+      .in("layer", KNOWLEDGE_LAYERS_BY_MODE[mode])
       .order("sort_order", { ascending: true }),
     mode === "cierre"
       ? supabase.from("client_config").select("checkout_link, authorized_pricing").eq("client_id", clientId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    supabase.from("client_business_context").select("context").eq("client_id", clientId).maybeSingle(),
   ])
 
   if (clientRes.error) throw new OmniContextError(`Error leyendo clients: ${clientRes.error.message}`)
   if (!clientRes.data) throw new OmniContextError(`No existe ningún cliente con id="${clientId}"`)
   if (knowledgeRes.error) throw new OmniContextError(`Error leyendo client_mentor_knowledge: ${knowledgeRes.error.message}`)
   if (configRes.error) throw new OmniContextError(`Error leyendo client_config: ${configRes.error.message}`)
+  // client_business_context es opcional — un error de lectura acá no debe
+  // tirar abajo toda la generación, solo se ignora (ver renderBusinessContext).
 
   const client = clientRes.data as ClientIdentityRow
   const knowledge = (knowledgeRes.data ?? []) as MentorKnowledgeRow[]
   const config = configRes.data as ClientConfigRow | null
+  const businessContext = (businessContextRes.data as { context: Record<string, string> | null } | null)?.context ?? null
 
   // Defensa en profundidad: si por algún bug de query se coló una fila de
   // otro cliente, esto revienta acá en vez de terminar en el prompt.
@@ -370,7 +393,10 @@ ${framework}
 ${vocabulario}
 
 ### Capa 3 — Casos de referencia
-${casos}`
+${casos}
+
+### Perfil de negocio (Context Room)
+${renderBusinessContext(businessContext)}`
   }
 
   if (mode === "contenido") {
@@ -389,7 +415,10 @@ ${framework}
 ${vocabulario}
 
 ### Capa 3 — Casos de referencia
-${casos}`
+${casos}
+
+### Perfil de negocio (Context Room)
+${renderBusinessContext(businessContext)}`
   }
 
   const filled = CIERRE_TEMPLATE.replaceAll("{NOMBRE_DEL_NEGOCIO}", client.business_name!)
@@ -417,5 +446,8 @@ ${objeciones}
 ${authorizedPricing}
 
 ### Link de checkout
-${config?.checkout_link ?? "(No configurado todavía — si la persona confirma que quiere pagar, decile que en breve la contacta alguien del equipo para coordinar, no inventes un link.)"}`
+${config?.checkout_link ?? "(No configurado todavía — si la persona confirma que quiere pagar, decile que en breve la contacta alguien del equipo para coordinar, no inventes un link.)"}
+
+### Perfil de negocio (Context Room)
+${renderBusinessContext(businessContext)}`
 }

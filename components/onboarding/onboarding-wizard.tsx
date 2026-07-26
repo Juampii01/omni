@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { CONTEXT_TABS } from "@/lib/omni/context-tabs"
 
 type Layer = "framework" | "vocabulario" | "casos"
 type KnowledgeEntry = { id: string; layer: Layer; title: string; content: string }
@@ -18,16 +19,6 @@ const LAYERS: Array<{ key: Layer; label: string; hint: string }> = [
   { key: "vocabulario", label: "Vocabulario y estilo", hint: "La forma de hablar característica de la metodología." },
   { key: "casos", label: "Casos de referencia", hint: "Ejemplos reales de qué salió bien y qué salió mal." },
 ]
-
-const CONTEXT_TABS = [
-  { key: "ubicacion", label: "Ubicación / cuenta" },
-  { key: "sobre_vos", label: "Sobre vos" },
-  { key: "negocio", label: "Sobre tu negocio" },
-  { key: "numeros", label: "Los números" },
-  { key: "cliente_ideal", label: "Tu cliente ideal" },
-  { key: "contenido", label: "Contenido / audiencia" },
-  { key: "como_llegaste", label: "Cómo llegaste acá" },
-] as const
 
 const STEP_LABELS = ["Identidad", "Mentor", "Negocio", "Listo"]
 
