@@ -46,6 +46,7 @@ const TABLES: TableConfig[] = [
   { table: "calendar_events", idColumn: "id", seed: (c, m) => ({ client_id: c, title: m, event_date: new Date().toISOString().slice(0, 10) }), updateField: "title", updateValue: "hackeado" },
   { table: "notifications", idColumn: "id", seed: (c, m) => ({ client_id: c, title: m }), updateField: "title", updateValue: "hackeado" },
   { table: "daily_briefings", idColumn: "id", seed: (c, m) => ({ client_id: c, date: new Date().toISOString().slice(0, 10), type: "leads", findings: [{ marker: m }] }), updateField: "messages_analyzed", updateValue: 999 },
+  { table: "pulse_checkins", idColumn: "id", seed: (c, m) => ({ client_id: c, wins: m, struggles: m }), updateField: "wins", updateValue: "hackeado" },
 ]
 
 async function seedClient(label: "A" | "B") {

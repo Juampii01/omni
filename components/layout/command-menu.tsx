@@ -20,6 +20,7 @@ import {
   Radio,
   CalendarDays,
   Zap,
+  HeartPulse,
 } from "lucide-react"
 import {
   Command,
@@ -46,6 +47,7 @@ const PAGES = [
   { href: "/dashboard/docs", label: "Documentos", icon: FileText },
   { href: "/dashboard/sops", label: "SOPs", icon: ClipboardList },
   { href: "/dashboard/tasks", label: "Tareas", icon: KanbanSquare },
+  { href: "/dashboard/pulse", label: "Pulse Check-ins", icon: HeartPulse },
   { href: "/dashboard/automations", label: "Automatizaciones", icon: Zap },
   { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
 ]

@@ -16,9 +16,10 @@ export interface AutomationEvent {
 }
 
 function matchesTrigger(workflowId: string, eventType: string, payload: Record<string, unknown>, triggerConfig: Record<string, unknown>): boolean {
-  if (eventType === "webhook.incoming") {
-    // El evento ya viene dirigido a UN workflow puntual (por la URL del
-    // webhook) — nunca "todos los workflows de webhook de este cliente".
+  if (eventType === "webhook.incoming" || eventType === "schedule.due") {
+    // Igual que webhook.incoming: el evento ya viene dirigido a UN workflow
+    // puntual (lib/omni/automation-schedule.ts ya resolvió qué workflow
+    // está vencido antes de encolar) — nunca "todos los de este cliente".
     return payload.workflowId === workflowId
   }
 

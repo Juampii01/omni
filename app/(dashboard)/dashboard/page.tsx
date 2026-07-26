@@ -15,37 +15,13 @@ import {
 import { TrendingUp, Users, CheckCircle2, Star } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { useSession } from "@/lib/auth/use-session"
+import { groupLeadsByWeek } from "@/lib/omni/analytics"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AnimatedCounter } from "@/components/ui/animated-counter"
 import { Sparkline } from "@/components/ui/sparkline"
 
 type Lead = { id: string; rating: number | null; purchased: boolean; created_at: string }
-type WeekPoint = { week: string; leads: number; avgRating: number | null }
-
-function groupByWeek(leads: Lead[]): WeekPoint[] {
-  const buckets = new Map<string, { count: number; ratingSum: number; ratingCount: number }>()
-  for (const lead of leads) {
-    const d = new Date(lead.created_at)
-    const monday = new Date(d)
-    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7))
-    const key = monday.toISOString().slice(0, 10)
-    const bucket = buckets.get(key) ?? { count: 0, ratingSum: 0, ratingCount: 0 }
-    bucket.count += 1
-    if (lead.rating != null) {
-      bucket.ratingSum += lead.rating
-      bucket.ratingCount += 1
-    }
-    buckets.set(key, bucket)
-  }
-  return Array.from(buckets.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([week, b]) => ({
-      week: new Date(week).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }),
-      leads: b.count,
-      avgRating: b.ratingCount > 0 ? Number((b.ratingSum / b.ratingCount).toFixed(2)) : null,
-    }))
-}
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 12 },
@@ -109,7 +85,7 @@ export default function DashboardPage() {
       .then(({ data }) => setLeads((data ?? []) as Lead[]))
   }, [session, supabase])
 
-  const chartData = useMemo(() => groupByWeek(leads ?? []), [leads])
+  const chartData = useMemo(() => groupLeadsByWeek(leads ?? []), [leads])
   const total = leads?.length ?? 0
   const closed = leads?.filter((l) => l.purchased).length ?? 0
   const rated = leads?.filter((l) => l.rating != null) ?? []

@@ -29,12 +29,16 @@ export async function POST(req: NextRequest) {
 
   const { name, triggerType, triggerConfig, steps } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: "name es obligatorio" }, { status: 400 })
-  if (!["briefing.finding", "task.column_changed", "webhook.incoming"].includes(triggerType)) {
+  if (!["briefing.finding", "task.column_changed", "webhook.incoming", "schedule.due"].includes(triggerType)) {
     return NextResponse.json({ error: "triggerType inválido" }, { status: 400 })
   }
   if (!Array.isArray(steps) || steps.length === 0) {
     return NextResponse.json({ error: "El workflow necesita al menos un step" }, { status: 400 })
   }
+  const invalidStep = steps.find(
+    (s: { actionType: string }) => !["create_task", "send_notification", "call_webhook", "ai_digest"].includes(s.actionType)
+  )
+  if (invalidStep) return NextResponse.json({ error: `actionType inválido: ${invalidStep.actionType}` }, { status: 400 })
 
   const supabase = createServiceClient()
 

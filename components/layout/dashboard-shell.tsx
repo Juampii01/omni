@@ -23,6 +23,7 @@ import {
   Radio,
   CalendarDays,
   Zap,
+  HeartPulse,
   Menu,
   X,
 } from "lucide-react"
@@ -69,6 +70,7 @@ const NAV_GROUPS = [
     label: "Operaciones",
     items: [
       { href: "/dashboard/tasks", label: "Tareas", icon: KanbanSquare },
+      { href: "/dashboard/pulse", label: "Pulse Check-ins", icon: HeartPulse },
       { href: "/dashboard/automations", label: "Automatizaciones", icon: Zap },
       { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
     ],

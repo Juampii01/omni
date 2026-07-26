@@ -20,12 +20,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-type Step = { id?: string; step_order?: number; action_type: string; action_config: Record<string, string> }
+type Step = { id?: string; step_order?: number; action_type: string; action_config: Record<string, unknown> }
 type Workflow = {
   id: string
   name: string
   trigger_type: string
-  trigger_config: Record<string, string>
+  trigger_config: Record<string, unknown>
   webhook_secret: string | null
   is_active: boolean
   automation_steps: Step[]
@@ -36,13 +36,26 @@ const TRIGGER_LABEL: Record<string, string> = {
   "briefing.finding": "Nuevo hallazgo en un briefing",
   "task.column_changed": "Una tarea cambia de columna",
   "webhook.incoming": "Webhook entrante",
+  "schedule.due": "Por horario",
 }
 
 const ACTION_LABEL: Record<string, string> = {
   create_task: "Crear tarea",
   send_notification: "Enviar notificación",
   call_webhook: "Llamar webhook",
+  ai_digest: "Resumen con IA",
 }
+
+const DATA_SOURCE_LABEL: Record<string, string> = {
+  leads: "Leads",
+  content_calendar: "Calendario de contenido",
+  kanban_tasks: "Tareas",
+  calendar_events: "Eventos de calendario",
+  daily_briefings: "Briefings diarios",
+  pulse_checkins: "Pulse check-ins",
+}
+
+const WEEKDAY_LABEL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
 
 function RunsList({ workflowId }: { workflowId: string }) {
   const [runs, setRuns] = useState<Run[] | null>(null)
@@ -148,6 +161,8 @@ function NewWorkflowDialog({ onCreated }: { onCreated: () => void }) {
   const [briefingType, setBriefingType] = useState("")
   const [minSeveridad, setMinSeveridad] = useState("")
   const [columnId, setColumnId] = useState("listo")
+  const [dayOfWeek, setDayOfWeek] = useState("3")
+  const [hour, setHour] = useState("8")
   const [steps, setSteps] = useState<Step[]>([{ action_type: "create_task", action_config: { title: "", description: "" } }])
   const [saving, setSaving] = useState(false)
 
@@ -158,15 +173,29 @@ function NewWorkflowDialog({ onCreated }: { onCreated: () => void }) {
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, action_config: { ...s.action_config, [key]: value } } : s)))
   }
 
+  function buildActionConfig(step: Step): Record<string, unknown> {
+    if (step.action_type !== "ai_digest") return step.action_config
+    const { outputType, outputTitle, lookbackDays, ...rest } = step.action_config
+    return {
+      ...rest,
+      lookbackDays: Number(lookbackDays) || 7,
+      ...(outputType === "task"
+        ? { createTask: { labelText: "Resumen IA" } }
+        : { notify: { title: (outputTitle as string) || undefined } }),
+    }
+  }
+
   async function handleCreate() {
     if (!name.trim()) return
     setSaving(true)
-    const triggerConfig: Record<string, string> =
+    const triggerConfig: Record<string, unknown> =
       triggerType === "briefing.finding"
         ? { ...(briefingType ? { briefingType } : {}), ...(minSeveridad ? { minSeveridad } : {}) }
         : triggerType === "task.column_changed"
           ? { columnId }
-          : {}
+          : triggerType === "schedule.due"
+            ? { dayOfWeek: Number(dayOfWeek), hour: Number(hour) }
+            : {}
 
     const res = await fetchWithAuth("/api/omni/automations", {
       method: "POST",
@@ -174,7 +203,7 @@ function NewWorkflowDialog({ onCreated }: { onCreated: () => void }) {
         name,
         triggerType,
         triggerConfig,
-        steps: steps.map((s) => ({ actionType: s.action_type, actionConfig: s.action_config })),
+        steps: steps.map((s) => ({ actionType: s.action_type, actionConfig: buildActionConfig(s) })),
       }),
     })
     const data = await res.json()
@@ -212,8 +241,28 @@ function NewWorkflowDialog({ onCreated }: { onCreated: () => void }) {
               <option value="briefing.finding">Nuevo hallazgo en un briefing</option>
               <option value="task.column_changed">Una tarea cambia de columna</option>
               <option value="webhook.incoming">Webhook entrante</option>
+              <option value="schedule.due">Por horario</option>
             </select>
           </div>
+
+          {triggerType === "schedule.due" && (
+            <div className="flex gap-3">
+              <select value={dayOfWeek} onChange={(e) => setDayOfWeek(e.target.value)} className="h-9 flex-1 rounded-lg border border-input bg-background px-3 text-sm">
+                {WEEKDAY_LABEL.map((label, i) => (
+                  <option key={i} value={i}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <select value={hour} onChange={(e) => setHour(e.target.value)} className="h-9 flex-1 rounded-lg border border-input bg-background px-3 text-sm">
+                {Array.from({ length: 24 }).map((_, h) => (
+                  <option key={h} value={h}>
+                    {h}:00
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {triggerType === "briefing.finding" && (
             <div className="flex gap-3">
@@ -256,26 +305,73 @@ function NewWorkflowDialog({ onCreated }: { onCreated: () => void }) {
                   <option value="create_task">Crear tarea</option>
                   <option value="send_notification">Enviar notificación</option>
                   <option value="call_webhook">Llamar webhook</option>
+                  <option value="ai_digest">Resumen con IA</option>
                 </select>
+
+                {step.action_type === "ai_digest" && (
+                  <>
+                    <select
+                      value={(step.action_config.dataSource as string) ?? ""}
+                      onChange={(e) => updateStepConfig(i, "dataSource", e.target.value)}
+                      className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">Elegí una fuente de datos</option>
+                      {Object.entries(DATA_SOURCE_LABEL).map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      type="number"
+                      placeholder="Días hacia atrás (default 7)"
+                      value={(step.action_config.lookbackDays as string) ?? ""}
+                      onChange={(e) => updateStepConfig(i, "lookbackDays", e.target.value)}
+                    />
+                    <Textarea
+                      placeholder="Qué ángulo resumir (ej: enfocate en patrones de bloqueo repetidos)"
+                      rows={2}
+                      value={(step.action_config.promptInstructions as string) ?? ""}
+                      onChange={(e) => updateStepConfig(i, "promptInstructions", e.target.value)}
+                    />
+                    <div className="flex gap-3">
+                      <select
+                        value={(step.action_config.outputType as string) ?? "notify"}
+                        onChange={(e) => updateStepConfig(i, "outputType", e.target.value)}
+                        className="h-9 flex-1 rounded-lg border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="notify">Enviar notificación</option>
+                        <option value="task">Crear tarea</option>
+                      </select>
+                      {((step.action_config.outputType as string) ?? "notify") === "notify" && (
+                        <Input
+                          placeholder="Título de la notificación"
+                          value={(step.action_config.outputTitle as string) ?? ""}
+                          onChange={(e) => updateStepConfig(i, "outputTitle", e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {step.action_type === "create_task" && (
                   <>
                     <Input
                       placeholder="Título (podés usar {{type}}, {{findings.0.titulo}}...)"
-                      value={step.action_config.title ?? ""}
+                      value={(step.action_config.title as string) ?? ""}
                       onChange={(e) => updateStepConfig(i, "title", e.target.value)}
                     />
-                    <Textarea placeholder="Descripción" rows={2} value={step.action_config.description ?? ""} onChange={(e) => updateStepConfig(i, "description", e.target.value)} />
+                    <Textarea placeholder="Descripción" rows={2} value={(step.action_config.description as string) ?? ""} onChange={(e) => updateStepConfig(i, "description", e.target.value)} />
                   </>
                 )}
                 {step.action_type === "send_notification" && (
                   <>
-                    <Input placeholder="Título" value={step.action_config.title ?? ""} onChange={(e) => updateStepConfig(i, "title", e.target.value)} />
-                    <Textarea placeholder="Cuerpo" rows={2} value={step.action_config.body ?? ""} onChange={(e) => updateStepConfig(i, "body", e.target.value)} />
+                    <Input placeholder="Título" value={(step.action_config.title as string) ?? ""} onChange={(e) => updateStepConfig(i, "title", e.target.value)} />
+                    <Textarea placeholder="Cuerpo" rows={2} value={(step.action_config.body as string) ?? ""} onChange={(e) => updateStepConfig(i, "body", e.target.value)} />
                   </>
                 )}
                 {step.action_type === "call_webhook" && (
-                  <Input placeholder="https://..." value={step.action_config.url ?? ""} onChange={(e) => updateStepConfig(i, "url", e.target.value)} />
+                  <Input placeholder="https://..." value={(step.action_config.url as string) ?? ""} onChange={(e) => updateStepConfig(i, "url", e.target.value)} />
                 )}
 
                 {steps.length > 1 && (

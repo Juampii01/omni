@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase-service"
 import { processAutomationEvent } from "@/lib/omni/automation-engine"
+import { scanAndEnqueueDueSchedules } from "@/lib/omni/automation-schedule"
 
 export const maxDuration = 60
 
@@ -18,6 +19,10 @@ function isAuthorized(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  // Workflows "por horario" no tienen su propio cron — se detectan acá y se
+  // encolan como un evento más, reusando el resto del drain de abajo.
+  const schedule = await scanAndEnqueueDueSchedules()
 
   const supabase = createServiceClient()
   const { data: events, error } = await supabase
@@ -60,5 +65,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ processed: results.length, results })
+  return NextResponse.json({ processed: results.length, results, schedule })
 }

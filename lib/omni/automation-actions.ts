@@ -2,7 +2,10 @@
 // (nunca el de otro), su propia config, y el payload del evento que
 // disparó el workflow (para poder referenciar datos reales del trigger
 // vía plantillas {{campo.anidado}}).
+import Anthropic from "@anthropic-ai/sdk"
 import { createServiceClient } from "@/lib/supabase-service"
+import { buildOmniSystemPrompt, OmniContextError } from "@/lib/omni/system-prompt"
+import { DATA_SOURCES, type DataSourceKey } from "@/lib/omni/data-queries"
 import { isIP } from "node:net"
 import { lookup } from "node:dns/promises"
 import ipaddr from "ipaddr.js"
@@ -156,6 +159,99 @@ async function callWebhook(url: string | undefined, payload: Record<string, unkn
   return { ok: false, detail: "demasiados redirects" }
 }
 
+type NotifyConfig = { title?: string; linkPath?: string }
+type CreateTaskConfig = { columnId?: string; labelText?: string }
+
+/** Trae datos scopeados (vía DATA_SOURCES, mismo registro que usa el chat
+ * con herramientas), los resume con Claude aplicando la voz del negocio, y
+ * publica el resultado como notificación y/o tarea. El caso de uso Monday
+ * Wins: juntar los check-ins de la semana, resumir patrones, avisar al
+ * equipo. */
+async function runAiDigest(clientId: string, actionConfig: Record<string, unknown>): Promise<ActionResult> {
+  const dataSourceKey = actionConfig.dataSource as string | undefined
+  if (!dataSourceKey || !(dataSourceKey in DATA_SOURCES)) {
+    return { ok: false, detail: `dataSource inválido o faltante: ${dataSourceKey}` }
+  }
+
+  const lookbackDays = typeof actionConfig.lookbackDays === "number" ? actionConfig.lookbackDays : 7
+  const promptInstructions = (actionConfig.promptInstructions as string) || "Resumí lo más relevante de este período para el equipo."
+  const mode = (actionConfig.mode as "feedback" | "contenido" | "cierre") || "feedback"
+  const notifyConfig = actionConfig.notify as NotifyConfig | undefined
+  const createTaskConfig = actionConfig.createTask as CreateTaskConfig | undefined
+
+  if (!notifyConfig && !createTaskConfig) {
+    return { ok: false, detail: "ai_digest configurado sin notify ni createTask — no hay ninguna salida definida" }
+  }
+
+  const getSummary = DATA_SOURCES[dataSourceKey as DataSourceKey]
+  const summary = (await getSummary(clientId, { sinceDays: lookbackDays } as never)) as Record<string, unknown>
+
+  // Soft-skip si no hay datos nuevos: evita gasto de API y una notificación
+  // vacía y ruidosa, sin dejar al cliente pensando que el schedule se rompió
+  // en silencio — el automation_runs de todos modos queda como evidencia.
+  const hasData = Object.values(summary).some((v) => (typeof v === "number" && v > 0) || (Array.isArray(v) && v.length > 0))
+  if (!hasData) return { ok: true, detail: `Sin datos nuevos en los últimos ${lookbackDays} días — no se generó resumen.` }
+
+  let systemPrompt: string
+  try {
+    systemPrompt = await buildOmniSystemPrompt(clientId, mode)
+  } catch (e) {
+    return { ok: false, detail: e instanceof OmniContextError ? e.message : "Error armando el contexto de Omni" }
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return { ok: false, detail: "Falta ANTHROPIC_API_KEY en el servidor" }
+
+  const anthropic = new Anthropic({ apiKey })
+  let digestText: string
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: `${promptInstructions}\n\nDATOS DEL PERÍODO (${dataSourceKey}, últimos ${lookbackDays} días):\n${JSON.stringify(summary, null, 2)}`,
+        },
+      ],
+    })
+    const block = response.content.find((b) => b.type === "text")
+    digestText = block?.type === "text" ? block.text.trim() : ""
+  } catch (e) {
+    return { ok: false, detail: `Error llamando a Claude: ${e instanceof Error ? e.message : "unknown"}` }
+  }
+  if (!digestText) return { ok: false, detail: "Claude no devolvió texto para el resumen" }
+
+  const supabase = createServiceClient()
+  const produced: string[] = []
+
+  if (notifyConfig) {
+    const { error } = await supabase.from("notifications").insert({
+      client_id: clientId,
+      title: notifyConfig.title || `Resumen: ${dataSourceKey}`,
+      body: digestText,
+      link: notifyConfig.linkPath || null,
+    })
+    if (error) return { ok: false, detail: `Error creando notificación: ${error.message}` }
+    produced.push("notificación")
+  }
+
+  if (createTaskConfig) {
+    const { error } = await supabase.from("kanban_tasks").insert({
+      client_id: clientId,
+      title: `Resumen: ${dataSourceKey}`,
+      description: digestText,
+      column_id: createTaskConfig.columnId || "por-hacer",
+      label_text: createTaskConfig.labelText || "Resumen IA",
+    })
+    if (error) return { ok: false, detail: `Error creando tarea: ${error.message}` }
+    produced.push("tarea")
+  }
+
+  return { ok: true, detail: `Resumen generado (${produced.join(", ")})` }
+}
+
 export async function executeAction(
   clientId: string,
   actionType: string,
@@ -189,6 +285,10 @@ export async function executeAction(
 
     if (actionType === "call_webhook") {
       return await callWebhook(actionConfig.url as string | undefined, eventPayload)
+    }
+
+    if (actionType === "ai_digest") {
+      return await runAiDigest(clientId, actionConfig)
     }
 
     return { ok: false, detail: `action_type desconocido: ${actionType}` }
