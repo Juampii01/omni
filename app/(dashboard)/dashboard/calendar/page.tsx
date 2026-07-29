@@ -105,7 +105,11 @@ export default function CalendarPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetchWithAuth(`/api/omni/calendar/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/calendar/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar el evento")
+      return
+    }
     setEvents((prev) => (prev ?? []).filter((e) => e.id !== id))
   }
 

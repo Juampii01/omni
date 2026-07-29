@@ -147,7 +147,11 @@ export default function MentorPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetchWithAuth(`/api/omni/mentor/knowledge/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/mentor/knowledge/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar")
+      return
+    }
     setKnowledge((prev) => prev.filter((k) => k.id !== id))
     toast.success("Entrada eliminada")
   }

@@ -144,7 +144,11 @@ export default function SopsPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetchWithAuth(`/api/omni/sops/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/sops/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar")
+      return
+    }
     setSops((prev) => (prev ?? []).filter((s) => s.id !== id))
     toast.success("SOP eliminado")
   }

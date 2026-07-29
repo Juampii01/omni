@@ -160,19 +160,31 @@ export default function DocsPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetchWithAuth(`/api/omni/docs/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/docs/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar la página")
+      return
+    }
     setPages((prev) => (prev ?? []).filter((p) => p.id !== id && p.parent_id !== id))
     if (selectedId === id) setSelectedId(null)
     toast.success("Página eliminada")
   }
 
   async function handleTitleChange(id: string, title: string) {
+    const previousTitle = pages?.find((p) => p.id === id)?.title
     setPages((prev) => (prev ?? []).map((p) => (p.id === id ? { ...p, title } : p)))
-    await fetchWithAuth(`/api/omni/docs/${id}`, { method: "PATCH", body: JSON.stringify({ title }) })
+    const res = await fetchWithAuth(`/api/omni/docs/${id}`, { method: "PATCH", body: JSON.stringify({ title }) })
+    if (!res.ok) {
+      toast.error("No se pudo guardar el título")
+      setPages((prev) => (prev ?? []).map((p) => (p.id === id ? { ...p, title: previousTitle ?? p.title } : p)))
+    }
   }
 
   async function handleContentSave(id: string, content: any[]) {
-    await fetchWithAuth(`/api/omni/docs/${id}`, { method: "PATCH", body: JSON.stringify({ content }) })
+    const res = await fetchWithAuth(`/api/omni/docs/${id}`, { method: "PATCH", body: JSON.stringify({ content }) })
+    if (!res.ok) {
+      toast.error("No se pudo guardar — tus últimos cambios podrían perderse")
+    }
   }
 
   if (pages === null) {

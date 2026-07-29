@@ -63,7 +63,11 @@ export function TaskModal({
     if (!commentInput.trim()) return
     const res = await fetchWithAuth(`/api/omni/tasks/${task.id}/comments`, { method: "POST", body: JSON.stringify({ body: commentInput }) })
     const data = await res.json()
-    if (data.comment) setComments((prev) => [...prev, data.comment])
+    if (!res.ok) {
+      toast.error(data.error ?? "No se pudo enviar el comentario")
+      return
+    }
+    setComments((prev) => [...prev, data.comment])
     setCommentInput("")
   }
 
@@ -76,7 +80,7 @@ export function TaskModal({
       toast.error(data.error ?? "No se pudo subir el archivo")
       return
     }
-    setAttachments((prev) => [...prev, { ...data.attachment, url: null }])
+    setAttachments((prev) => [...prev, data.attachment])
     toast.success("Archivo subido")
   }
 

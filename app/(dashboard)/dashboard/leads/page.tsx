@@ -7,6 +7,7 @@ import { useSession } from "@/lib/auth/use-session"
 import { formatDayMonthYear } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type Lead = {
   id: string
@@ -94,6 +95,20 @@ export default function LeadsPage() {
   const closedLeads = (leads ?? []).filter((l) => l.purchased)
   const totalRevenue = closedLeads.reduce((sum, l) => sum + (l.deal_amount ?? 0), 0)
   const avgDeal = closedLeads.length > 0 ? totalRevenue / closedLeads.length : 0
+
+  if (leads === null) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

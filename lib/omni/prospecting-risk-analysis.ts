@@ -72,6 +72,23 @@ export async function runProspectingRiskAnalysis(clientId: string): Promise<Pros
   const { data: leads } = await supabase.from("leads").select("instagram, rating, niche, notes, purchased").eq("client_id", clientId)
   const leadByUsername = new Map((leads ?? []).filter((l) => l.instagram).map((l) => [l.instagram!.replace(/^@/, ""), l]))
 
+  // Un solo round-trip para los últimos MESSAGES_PER_CONVERSATION mensajes de
+  // TODAS las conversaciones — es "top-N por grupo", por eso la función de
+  // Postgres con row_number() en vez de un .in()+.limit() plano (que
+  // capearía el total combinado, no por conversación).
+  const { data: recentMessages, error: messagesError } = await supabase.rpc("get_recent_messages_per_conversation", {
+    p_conversation_ids: conversations.map((c) => c.id),
+    p_limit_per_conversation: MESSAGES_PER_CONVERSATION,
+  })
+  if (messagesError) throw new ProspectingRiskAnalysisError(messagesError.message, 500)
+
+  const messagesByConversationId = new Map<string, Array<{ sender: string; body: string | null; sent_at: string }>>()
+  for (const m of recentMessages ?? []) {
+    const list = messagesByConversationId.get(m.conversation_id) ?? []
+    list.push(m)
+    messagesByConversationId.set(m.conversation_id, list)
+  }
+
   const transcripts: Array<{ username: string; lead: unknown; messages: string }> = []
 
   for (const conv of conversations) {
@@ -79,14 +96,8 @@ export async function runProspectingRiskAnalysis(clientId: string): Promise<Pros
     const lead = leadByUsername.get(username.replace(/^@/, ""))
     if (lead?.purchased) continue // ya cerró, no es prospección en riesgo
 
-    const { data: messages } = await supabase
-      .from("instagram_messages")
-      .select("sender, body, sent_at")
-      .eq("conversation_id", conv.id)
-      .order("sent_at", { ascending: true })
-      .limit(MESSAGES_PER_CONVERSATION)
-
-    if (!messages || messages.length === 0) continue
+    const messages = messagesByConversationId.get(conv.id) ?? []
+    if (messages.length === 0) continue
 
     transcripts.push({
       username,

@@ -272,21 +272,33 @@ export default function ContentPage() {
   }
 
   async function handleDeleteIdea(id: string) {
-    await fetchWithAuth(`/api/omni/content/ideas/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/content/ideas/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar la idea")
+      return
+    }
     setIdeas((prev) => (prev ?? []).filter((i) => i.id !== id))
   }
 
   async function handleAddCompetitor() {
     const res = await fetchWithAuth("/api/omni/content/competitors", { method: "POST", body: JSON.stringify({ channel: "instagram", name: compName, handle: compHandle }) })
     const data = await res.json()
-    if (data.item) setCompetitors((prev) => [data.item, ...(prev ?? [])])
+    if (!res.ok) {
+      toast.error(data.error ?? "No se pudo agregar el competidor")
+      return
+    }
+    setCompetitors((prev) => [data.item, ...(prev ?? [])])
     setCompDialogOpen(false)
     setCompName("")
     setCompHandle("")
   }
 
   async function handleDeleteCompetitor(id: string) {
-    await fetchWithAuth(`/api/omni/content/competitors/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/content/competitors/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar el competidor")
+      return
+    }
     setCompetitors((prev) => (prev ?? []).filter((c) => c.id !== id))
   }
 

@@ -415,12 +415,20 @@ export default function AutomationsPage() {
   }, [])
 
   async function handleToggle(workflow: Workflow) {
-    await fetchWithAuth(`/api/omni/automations/${workflow.id}`, { method: "PATCH", body: JSON.stringify({ is_active: !workflow.is_active }) })
+    const res = await fetchWithAuth(`/api/omni/automations/${workflow.id}`, { method: "PATCH", body: JSON.stringify({ is_active: !workflow.is_active }) })
+    if (!res.ok) {
+      toast.error("No se pudo actualizar el workflow")
+      return
+    }
     setWorkflows((prev) => (prev ?? []).map((w) => (w.id === workflow.id ? { ...w, is_active: !w.is_active } : w)))
   }
 
   async function handleDelete(id: string) {
-    await fetchWithAuth(`/api/omni/automations/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/automations/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar el workflow")
+      return
+    }
     setWorkflows((prev) => (prev ?? []).filter((w) => w.id !== id))
     toast.success("Workflow eliminado")
   }

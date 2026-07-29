@@ -129,25 +129,42 @@ export function KanbanBoard({ clientId }: { clientId: string }) {
     reorderTimer.current = setTimeout(async () => {
       const changes = pendingRef.current.map((t) => ({ id: t.id, columnId: t.column_id, order: t.order }))
       pendingRef.current = []
-      await fetchWithAuth("/api/omni/tasks/reorder", { method: "POST", body: JSON.stringify({ changes }) })
+      const res = await fetchWithAuth("/api/omni/tasks/reorder", { method: "POST", body: JSON.stringify({ changes }) })
+      if (!res.ok) toast.error("No se pudo guardar el orden de las tareas")
     }, 300)
   }
 
   async function handleQuickAdd(columnId: string, title: string) {
     const res = await fetchWithAuth("/api/omni/tasks", { method: "POST", body: JSON.stringify({ title, columnId }) })
     const data = await res.json()
-    if (data.task) setTasks((prev) => [...(prev ?? []), data.task])
+    if (!res.ok) {
+      toast.error(data.error ?? "No se pudo crear la tarea")
+      return
+    }
+    setTasks((prev) => [...(prev ?? []), data.task])
   }
 
   async function handleUpdate(id: string, patch: Partial<Task>) {
+    const previous = (tasks ?? []).find((t) => t.id === id)
     setTasks((prev) => (prev ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)))
     setModalTask((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev))
-    await fetchWithAuth(`/api/omni/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) })
+    const res = await fetchWithAuth(`/api/omni/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) })
+    if (!res.ok && previous) {
+      toast.error("No se pudo guardar el cambio")
+      setTasks((prev) => (prev ?? []).map((t) => (t.id === id ? previous : t)))
+      setModalTask((prev) => (prev && prev.id === id ? previous : prev))
+    }
   }
 
   async function handleDelete(id: string) {
+    const previous = tasks ?? []
     setTasks((prev) => (prev ?? []).filter((t) => t.id !== id))
-    await fetchWithAuth(`/api/omni/tasks/${id}`, { method: "DELETE" })
+    const res = await fetchWithAuth(`/api/omni/tasks/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      toast.error("No se pudo eliminar la tarea")
+      setTasks(previous)
+      return
+    }
     toast.success("Tarea eliminada")
   }
 
