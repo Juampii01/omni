@@ -4,7 +4,9 @@
 // no hay nada preocupante. Portado del piloto de Ann (Smart-Scale).
 
 import { createServiceClient } from "@/lib/supabase-service"
-import { buildOmniSystemPrompt } from "@/lib/omni/system-prompt"
+import { buildOmniSystemPrompt, OmniContextError } from "@/lib/omni/system-prompt"
+import { isOwnClient } from "@/lib/omni/isolation"
+import { stripJsonFence } from "@/lib/omni/json"
 import Anthropic from "@anthropic-ai/sdk"
 
 const MESSAGES_LIMIT = 60
@@ -36,7 +38,10 @@ export async function runConversationAnalysis(clientId: string, conversationId: 
   try {
     systemPrompt = await buildOmniSystemPrompt(clientId)
   } catch (e) {
-    throw new ConversationAnalysisError(e instanceof Error ? e.message : "Error armando el contexto de Omni", 500)
+    throw new ConversationAnalysisError(
+      e instanceof OmniContextError ? e.message : e instanceof Error ? e.message : "Error armando el contexto de Omni",
+      e instanceof OmniContextError ? 422 : 500
+    )
   }
 
   const supabase = createServiceClient()
@@ -50,7 +55,7 @@ export async function runConversationAnalysis(clientId: string, conversationId: 
 
   if (convError) throw new ConversationAnalysisError(convError.message, 500)
   if (!conversation) throw new ConversationAnalysisError("Conversación no encontrada", 404)
-  if (conversation.client_id !== clientId) {
+  if (!isOwnClient([conversation], clientId)) {
     throw new ConversationAnalysisError(`Aislamiento violado: conversación pertenece a client_id=${conversation.client_id}`, 500)
   }
 
@@ -106,7 +111,7 @@ Respondé SOLO con el JSON. Sin markdown, sin texto adicional.`
 
   const raw = msg.content.find((b) => b.type === "text")
   const text = raw?.type === "text" ? raw.text.trim() : "{}"
-  const cleaned = text.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim()
+  const cleaned = stripJsonFence(text)
 
   let result: ConversationAnalysisResult
   try {

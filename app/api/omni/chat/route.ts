@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
-import { requireAuth } from "@/lib/auth/api-guards"
+import { requireAuth, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
 import { buildOmniSystemPrompt, OmniContextError } from "@/lib/omni/system-prompt"
 import { CHAT_TOOLS, runChatTool } from "@/lib/omni/chat-tools"
+import { checkRateLimit } from "@/lib/omni/rate-limit"
 
 // Loop de tool-use puede implicar varias llamadas secuenciales a Claude en
 // un solo request — el default de Vercel no alcanza.
 export const maxDuration = 60
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
 
 type ChatMessage = { role: "user" | "assistant"; content: string }
 
@@ -50,6 +46,10 @@ export async function POST(req: NextRequest) {
   const ctx = await requireAuth(getJwt(req))
   if (!ctx || !ctx.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const clientId = ctx.clientId
+
+  if (!(await checkRateLimit(clientId, "chat", { maxCalls: 20, windowSeconds: 60 }))) {
+    return NextResponse.json({ error: "Demasiadas solicitudes, esperá un momento y volvé a intentar." }, { status: 429 })
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: "Falta ANTHROPIC_API_KEY en el servidor" }, { status: 503 })

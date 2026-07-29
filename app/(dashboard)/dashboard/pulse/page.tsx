@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { HeartPulse } from "lucide-react"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
+import { formatDayMonthYear } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -132,7 +133,7 @@ export default function PulsePage() {
             <Card key={c.id}>
               <CardHeader className="flex-row items-center justify-between">
                 <CardTitle className="text-sm">
-                  {c.period_label || new Date(c.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                  {c.period_label || formatDayMonthYear(new Date(c.created_at))}
                 </CardTitle>
                 {c.mood && <Badge variant="secondary">{MOODS.find((m) => m.value === c.mood)?.label}</Badge>}
               </CardHeader>

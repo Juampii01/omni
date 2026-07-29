@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth/api-guards"
+import { requireAuth, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
 
 type Change = { id: string; columnId: string; order: number }
 

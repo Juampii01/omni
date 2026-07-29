@@ -3,6 +3,8 @@
 // chat/motor de automatizaciones (server-side, ver data-queries.ts) comparten
 // esta misma lógica en vez de tener cada uno su propia copia.
 
+import { formatDayMonth } from "@/lib/utils"
+
 function mondayOf(dateStr: string): string {
   const d = new Date(dateStr)
   const monday = new Date(d)
@@ -11,7 +13,7 @@ function mondayOf(dateStr: string): string {
 }
 
 function formatWeekLabel(weekStart: string): string {
-  return new Date(weekStart).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+  return formatDayMonth(new Date(weekStart))
 }
 
 export type LeadWeekInput = { created_at: string; rating?: number | null; purchased?: boolean }

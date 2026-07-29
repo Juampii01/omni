@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requirePlatformAdmin } from "@/lib/auth/api-guards"
+import { requirePlatformAdmin, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
 
 export async function GET(req: NextRequest) {
   const ctx = await requirePlatformAdmin(getJwt(req))

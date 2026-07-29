@@ -4,7 +4,9 @@
 // obligatorio.
 
 import { createServiceClient } from "@/lib/supabase-service"
-import { buildOmniSystemPrompt } from "@/lib/omni/system-prompt"
+import { buildOmniSystemPrompt, OmniContextError } from "@/lib/omni/system-prompt"
+import { isOwnClient, findForeignRow } from "@/lib/omni/isolation"
+import { stripJsonFence } from "@/lib/omni/json"
 import Anthropic from "@anthropic-ai/sdk"
 import type { ProspectRisk } from "@/lib/omni/types"
 
@@ -35,7 +37,10 @@ export async function runProspectingRiskAnalysis(clientId: string): Promise<Pros
   try {
     systemPrompt = await buildOmniSystemPrompt(clientId)
   } catch (e) {
-    throw new ProspectingRiskAnalysisError(e instanceof Error ? e.message : "Error armando el contexto de Omni", 500)
+    throw new ProspectingRiskAnalysisError(
+      e instanceof OmniContextError ? e.message : e instanceof Error ? e.message : "Error armando el contexto de Omni",
+      e instanceof OmniContextError ? 422 : 500
+    )
   }
 
   const supabase = createServiceClient()
@@ -56,13 +61,12 @@ export async function runProspectingRiskAnalysis(clientId: string): Promise<Pros
 
   // Defensa en profundidad: nada de otro cliente debería poder colarse acá,
   // ya filtramos por client_id arriba, pero lo confirmamos igual.
-  for (const conv of conversations) {
-    if (conv.client_id !== clientId) {
-      throw new ProspectingRiskAnalysisError(
-        `Aislamiento violado: conversación ${conv.id} pertenece a client_id=${conv.client_id}, se esperaba ${clientId}`,
-        500
-      )
-    }
+  if (!isOwnClient(conversations, clientId)) {
+    const bad = findForeignRow(conversations, clientId)
+    throw new ProspectingRiskAnalysisError(
+      `Aislamiento violado: conversación ${bad?.id} pertenece a client_id=${bad?.client_id}, se esperaba ${clientId}`,
+      500
+    )
   }
 
   const { data: leads } = await supabase.from("leads").select("instagram, rating, niche, notes, purchased").eq("client_id", clientId)
@@ -134,7 +138,7 @@ Respondé SOLO con un JSON array. Sin markdown, sin texto adicional.`
 
   const raw = msg.content.find((b) => b.type === "text")
   const text = raw?.type === "text" ? raw.text.trim() : "[]"
-  const cleaned = text.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim()
+  const cleaned = stripJsonFence(text)
 
   let findings: ProspectRisk[]
   try {

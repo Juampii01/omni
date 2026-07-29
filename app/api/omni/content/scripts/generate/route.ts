@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
-import { requireAuth } from "@/lib/auth/api-guards"
+import { requireAuth, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
 import { buildOmniSystemPrompt, OmniContextError } from "@/lib/omni/system-prompt"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
+import { stripJsonFence } from "@/lib/omni/json"
+import { checkRateLimit } from "@/lib/omni/rate-limit"
 
 const VALID_SCRIPT_TYPES = ["full_script", "hook", "story_beats"] as const
 type ScriptType = (typeof VALID_SCRIPT_TYPES)[number]
@@ -69,6 +66,10 @@ export async function POST(req: NextRequest) {
   const ctx = await requireAuth(getJwt(req))
   if (!ctx || !ctx.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  if (!(await checkRateLimit(ctx.clientId, "scripts-generate", { maxCalls: 10, windowSeconds: 60 }))) {
+    return NextResponse.json({ error: "Demasiadas solicitudes, esperá un momento y volvé a intentar." }, { status: 429 })
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return NextResponse.json({ error: "Falta ANTHROPIC_API_KEY en el servidor" }, { status: 503 })
 
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
     })
     const block = response.content.find((b) => b.type === "text")
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Error llamando a Claude: ${e instanceof Error ? e.message : "unknown"}` }, { status: 502 })
   }
 
-  const cleaned = raw.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim()
+  const cleaned = stripJsonFence(raw)
   let script: unknown
   try {
     script = JSON.parse(cleaned)

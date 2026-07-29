@@ -5,6 +5,7 @@
 // integración exista — no hace falta rediseñar nada, solo agregar el query.
 
 import { createServiceClient } from "@/lib/supabase-service"
+import { isOwnClient, findForeignRow } from "@/lib/omni/isolation"
 
 export interface UnansweredItem {
   platform: "instagram" | "slack"
@@ -39,10 +40,9 @@ export async function buildUnansweredDigest(clientId: string): Promise<Unanswere
   if (error) throw new Error(error.message)
 
   // Defensa en profundidad — ya filtramos por client_id arriba.
-  for (const conv of conversations ?? []) {
-    if (conv.client_id !== clientId) {
-      throw new Error(`Aislamiento violado: conversación ${conv.id} pertenece a client_id=${conv.client_id}, se esperaba ${clientId}`)
-    }
+  if (!isOwnClient(conversations ?? [], clientId)) {
+    const bad = findForeignRow(conversations ?? [], clientId)
+    throw new Error(`Aislamiento violado: conversación ${bad?.id} pertenece a client_id=${bad?.client_id}, se esperaba ${clientId}`)
   }
 
   const unanswered = (conversations ?? []).filter((c) => c.last_message_sender === "lead" && c.last_message_at)

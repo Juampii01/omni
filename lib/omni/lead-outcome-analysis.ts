@@ -8,7 +8,9 @@
 // de este negocio puntual").
 
 import { createServiceClient } from "@/lib/supabase-service"
-import { buildOmniSystemPrompt } from "@/lib/omni/system-prompt"
+import { buildOmniSystemPrompt, OmniContextError } from "@/lib/omni/system-prompt"
+import { isOwnClient, findForeignRow } from "@/lib/omni/isolation"
+import { stripJsonFence } from "@/lib/omni/json"
 import Anthropic from "@anthropic-ai/sdk"
 import type { SlackFinding } from "@/lib/omni/types"
 
@@ -37,7 +39,10 @@ export async function runLeadOutcomeAnalysis(clientId: string): Promise<LeadOutc
   try {
     systemPrompt = await buildOmniSystemPrompt(clientId)
   } catch (e) {
-    throw new LeadOutcomeAnalysisError(e instanceof Error ? e.message : "Error armando el contexto de Omni", 500)
+    throw new LeadOutcomeAnalysisError(
+      e instanceof OmniContextError ? e.message : e instanceof Error ? e.message : "Error armando el contexto de Omni",
+      e instanceof OmniContextError ? 422 : 500
+    )
   }
 
   const supabase = createServiceClient()
@@ -56,13 +61,12 @@ export async function runLeadOutcomeAnalysis(clientId: string): Promise<LeadOutc
 
   // Defensa en profundidad: nada de otro cliente debería poder colarse acá,
   // ya filtramos por client_id arriba, pero lo confirmamos igual.
-  for (const lead of leads ?? []) {
-    if (lead.client_id !== clientId) {
-      throw new LeadOutcomeAnalysisError(
-        `Aislamiento violado: lead ${lead.id} pertenece a client_id=${lead.client_id}, se esperaba ${clientId}`,
-        500
-      )
-    }
+  if (!isOwnClient(leads ?? [], clientId)) {
+    const bad = findForeignRow(leads ?? [], clientId)
+    throw new LeadOutcomeAnalysisError(
+      `Aislamiento violado: lead ${bad?.id} pertenece a client_id=${bad?.client_id}, se esperaba ${clientId}`,
+      500
+    )
   }
 
   if (!leads || leads.length === 0) {
@@ -139,7 +143,7 @@ Respondé SOLO con un JSON array de hallazgos. Si no hay nada relevante, devolv�
 
   const raw = msg.content.find((b) => b.type === "text")
   const text = raw?.type === "text" ? raw.text.trim() : "[]"
-  const cleaned = text.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim()
+  const cleaned = stripJsonFence(text)
 
   let findings: SlackFinding[]
   try {

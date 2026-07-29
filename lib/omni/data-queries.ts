@@ -5,15 +5,14 @@
 // createServiceClient (service_role, bypassea RLS).
 import { createServiceClient } from "@/lib/supabase-service"
 import { groupLeadsByWeek, groupContentCalendarByWeek } from "@/lib/omni/analytics"
+import { isOwnClient, findForeignRow } from "@/lib/omni/isolation"
 
 const ROW_LIMIT = 500
 
 function assertOwnClient(rows: Array<{ client_id: string }>, clientId: string, table: string) {
-  for (const row of rows) {
-    if (row.client_id !== clientId) {
-      throw new Error(`Aislamiento violado en ${table}: se esperaba client_id=${clientId} pero se encontró client_id=${row.client_id}`)
-    }
-  }
+  if (isOwnClient(rows, clientId)) return
+  const bad = findForeignRow(rows, clientId)
+  throw new Error(`Aislamiento violado en ${table}: se esperaba client_id=${clientId} pero se encontró client_id=${bad?.client_id}`)
 }
 
 function sinceIso(days: number): string {

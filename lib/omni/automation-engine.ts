@@ -54,33 +54,46 @@ export async function processAutomationEvent(event: AutomationEvent) {
 
   if (error) throw new Error(error.message)
 
-  let matched = 0
-  for (const workflow of workflows ?? []) {
-    if (!matchesTrigger(workflow.id, event.event_type, event.payload, (workflow.trigger_config as Record<string, unknown>) ?? {})) continue
-    matched++
+  const matchedWorkflows = (workflows ?? []).filter((w) =>
+    matchesTrigger(w.id, event.event_type, event.payload, (w.trigger_config as Record<string, unknown>) ?? {})
+  )
 
-    const { data: steps } = await supabase
-      .from("automation_steps")
-      .select("action_type, action_config")
-      .eq("workflow_id", workflow.id)
-      .order("step_order", { ascending: true })
+  if (matchedWorkflows.length === 0) return { workflowsMatched: 0 }
 
+  const { data: allSteps, error: stepsError } = await supabase
+    .from("automation_steps")
+    .select("workflow_id, step_order, action_type, action_config")
+    .in(
+      "workflow_id",
+      matchedWorkflows.map((w) => w.id)
+    )
+
+  if (stepsError) throw new Error(stepsError.message)
+
+  const stepsByWorkflow = new Map<string, NonNullable<typeof allSteps>>()
+  for (const step of allSteps ?? []) {
+    const list = stepsByWorkflow.get(step.workflow_id) ?? []
+    list.push(step)
+    stepsByWorkflow.set(step.workflow_id, list)
+  }
+  for (const list of stepsByWorkflow.values()) list.sort((a, b) => a.step_order - b.step_order)
+
+  const runs: Array<{ workflow_id: string; client_id: string; event_id: string; status: "success" | "error"; log: unknown }> = []
+
+  for (const workflow of matchedWorkflows) {
+    const steps = stepsByWorkflow.get(workflow.id) ?? []
     const log: Array<{ step: number; action_type: string; ok: boolean; detail: string }> = []
     let allOk = true
-    for (const [i, step] of (steps ?? []).entries()) {
+    for (const [i, step] of steps.entries()) {
       const result = await executeAction(event.client_id, step.action_type, (step.action_config as Record<string, unknown>) ?? {}, event.payload)
       log.push({ step: i, action_type: step.action_type, ok: result.ok, detail: result.detail })
       if (!result.ok) allOk = false
     }
-
-    await supabase.from("automation_runs").insert({
-      workflow_id: workflow.id,
-      client_id: event.client_id,
-      event_id: event.id,
-      status: allOk ? "success" : "error",
-      log,
-    })
+    runs.push({ workflow_id: workflow.id, client_id: event.client_id, event_id: event.id, status: allOk ? "success" : "error", log })
   }
 
-  return { workflowsMatched: matched }
+  const { error: runsError } = await supabase.from("automation_runs").insert(runs)
+  if (runsError) throw new Error(runsError.message)
+
+  return { workflowsMatched: matchedWorkflows.length }
 }

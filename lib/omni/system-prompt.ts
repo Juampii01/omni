@@ -8,6 +8,7 @@
 // 3 capas de contexto específicas del client_id pedido.
 
 import { createServiceClient } from "@/lib/supabase-service"
+import { isOwnClient, findForeignRow } from "@/lib/omni/isolation"
 
 export class OmniContextError extends Error {}
 
@@ -346,12 +347,11 @@ export async function buildOmniSystemPrompt(clientId: string, mode: "feedback" |
 
   // Defensa en profundidad: si por algún bug de query se coló una fila de
   // otro cliente, esto revienta acá en vez de terminar en el prompt.
-  for (const row of knowledge) {
-    if (row.client_id !== clientId) {
-      throw new OmniContextError(
-        `Aislamiento violado en client_mentor_knowledge: se esperaba client_id=${clientId} pero se encontró client_id=${row.client_id}`
-      )
-    }
+  if (!isOwnClient(knowledge, clientId)) {
+    const bad = findForeignRow(knowledge, clientId)
+    throw new OmniContextError(
+      `Aislamiento violado en client_mentor_knowledge: se esperaba client_id=${clientId} pero se encontró client_id=${bad?.client_id}`
+    )
   }
 
   const framework = renderLayer(knowledge, "framework")

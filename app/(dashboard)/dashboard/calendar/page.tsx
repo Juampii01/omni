@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
-import { parseLocalDate } from "@/lib/utils"
+import { parseLocalDate, formatDayMonth } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -223,7 +223,7 @@ export default function CalendarPage() {
                     {TYPE_LABEL[e.event_type] ?? e.event_type}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {parseLocalDate(e.event_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                    {formatDayMonth(parseLocalDate(e.event_date))}
                   </span>
                 </div>
                 {e.description && <p className="mt-1.5 text-xs text-muted-foreground">{e.description}</p>}

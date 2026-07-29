@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { Lock } from "lucide-react"
 import { PRIORITIES, type Task } from "./constants"
 import { initials, avatarColor } from "./avatar"
-import { parseLocalDate } from "@/lib/utils"
+import { parseLocalDate, formatDayMonth } from "@/lib/utils"
 
 export function TaskCard({
   task,
@@ -55,7 +55,7 @@ export function TaskCard({
           )}
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
-              {task.due_date && <span className={dueClass}>{parseLocalDate(task.due_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}</span>}
+              {task.due_date && <span className={dueClass}>{formatDayMonth(parseLocalDate(task.due_date))}</span>}
             </div>
             <div className="flex -space-x-1.5">
               {task.assignees.slice(0, 3).map((a) => (

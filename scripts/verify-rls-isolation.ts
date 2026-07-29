@@ -23,7 +23,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 interface TableConfig {
   table: string
   idColumn: string
-  seed: (clientId: string, marker: string) => Record<string, unknown>
+  seed: (clientId: string, marker: string) => Record<string, unknown> | Promise<Record<string, unknown>>
   updateField: string
   updateValue: unknown
 }
@@ -32,6 +32,9 @@ interface TableConfig {
 // cliente (se excluyen las service_role-only: client_config,
 // client_mentor_knowledge, slack_*, instagram_*, oauth_states,
 // audit_logs, *_analyses — esas nunca se leen desde el browser).
+// ig_conversation_state es la excepción parcial: tiene policy de LECTURA
+// para authenticated (client_read) pero ninguna de escritura — ver nota
+// puntual más abajo, junto a esa entrada.
 const TABLES: TableConfig[] = [
   { table: "leads", idColumn: "id", seed: (c, m) => ({ client_id: c, name: `Lead ${m}`, notes: m }), updateField: "notes", updateValue: "hackeado" },
   { table: "client_business_context", idColumn: "client_id", seed: (c, m) => ({ client_id: c, context: { marker: m } }), updateField: "context", updateValue: { hacked: true } },
@@ -47,6 +50,73 @@ const TABLES: TableConfig[] = [
   { table: "notifications", idColumn: "id", seed: (c, m) => ({ client_id: c, title: m }), updateField: "title", updateValue: "hackeado" },
   { table: "daily_briefings", idColumn: "id", seed: (c, m) => ({ client_id: c, date: new Date().toISOString().slice(0, 10), type: "leads", findings: [{ marker: m }] }), updateField: "messages_analyzed", updateValue: 999 },
   { table: "pulse_checkins", idColumn: "id", seed: (c, m) => ({ client_id: c, wins: m, struggles: m }), updateField: "wins", updateValue: "hackeado" },
+  { table: "chat_conversations", idColumn: "id", seed: (c, m) => ({ client_id: c, title: m, messages: [] }), updateField: "title", updateValue: "hackeado" },
+  {
+    table: "kanban_comments",
+    idColumn: "id",
+    seed: async (c, m) => {
+      const { data: task } = await service.from("kanban_tasks").select("id").eq("client_id", c).limit(1).single()
+      return { client_id: c, task_id: task!.id, body: m }
+    },
+    updateField: "body",
+    updateValue: "hackeado",
+  },
+  {
+    table: "kanban_attachments",
+    idColumn: "id",
+    seed: async (c, m) => {
+      const { data: task } = await service.from("kanban_tasks").select("id").eq("client_id", c).limit(1).single()
+      return { client_id: c, task_id: task!.id, file_name: m, file_path: `seed/${m}` }
+    },
+    updateField: "file_name",
+    updateValue: "hackeado",
+  },
+  {
+    table: "automation_workflows",
+    idColumn: "id",
+    seed: (c, m) => ({ client_id: c, name: m, trigger_type: "task.column_changed" }),
+    updateField: "name",
+    updateValue: "hackeado",
+  },
+  {
+    table: "automation_steps",
+    idColumn: "id",
+    seed: async (c, m) => {
+      const { data: wf } = await service.from("automation_workflows").select("id").eq("client_id", c).limit(1).single()
+      return { client_id: c, workflow_id: wf!.id, action_type: "send_notification", step_order: 0, action_config: { marker: m } }
+    },
+    updateField: "step_order",
+    updateValue: 99,
+  },
+  {
+    table: "automation_runs",
+    idColumn: "id",
+    seed: async (c, m) => {
+      const { data: wf } = await service.from("automation_workflows").select("id").eq("client_id", c).limit(1).single()
+      return { client_id: c, workflow_id: wf!.id, status: "success", log: [{ marker: m }] }
+    },
+    updateField: "log",
+    updateValue: { hacked: true },
+  },
+  // Única policy para authenticated es "client_read" (solo SELECT) — no hay
+  // ninguna policy de escritura, ni siquiera client_own. El chequeo de
+  // escritura de abajo va a dar wrote:false acá SIEMPRE, eso confirma
+  // "no hay escritura posible" (por diseño), no una policy client_own
+  // funcionando — no leer un resultado limpio acá como más de lo que es.
+  {
+    table: "ig_conversation_state",
+    idColumn: "id",
+    seed: async (c, m) => {
+      const { data: conv } = await service
+        .from("instagram_conversations")
+        .insert({ client_id: c, ig_conversation_id: `seed_${m}` })
+        .select("id")
+        .single()
+      return { client_id: c, conversation_id: conv!.id, instagram_user_id: m, owner: "sin_reclamar" }
+    },
+    updateField: "etapa",
+    updateValue: "negociando",
+  },
 ]
 
 async function seedClient(label: "A" | "B") {
@@ -71,7 +141,8 @@ async function seedClient(label: "A" | "B") {
   if (profileError) throw profileError
 
   for (const cfg of TABLES) {
-    const { error } = await service.from(cfg.table).insert(cfg.seed(clientId, marker))
+    const seeded = await cfg.seed(clientId, marker)
+    const { error } = await service.from(cfg.table).insert(seeded)
     if (error) throw new Error(`seed falló para ${cfg.table}: ${error.message}`)
   }
 

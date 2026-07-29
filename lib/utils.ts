@@ -12,3 +12,11 @@ export function parseLocalDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-").map(Number)
   return new Date(year, month - 1, day)
 }
+
+export function formatDayMonth(date: Date): string {
+  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+}
+
+export function formatDayMonthYear(date: Date): string {
+  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+}

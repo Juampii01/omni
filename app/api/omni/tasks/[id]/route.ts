@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth/api-guards"
+import { requireAuth, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
 import { emitOmniEvent } from "@/lib/omni/automation-events"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
 
 const PATCHABLE = [
   "title",

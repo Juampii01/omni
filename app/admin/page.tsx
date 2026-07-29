@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Plus, Users, Building2, LogIn } from "lucide-react"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api-client"
+import { formatDayMonthYear } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -142,7 +143,7 @@ export default function AdminPage() {
                   <Building2 className="h-3.5 w-3.5" /> {c.leadCount} leads
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Creado el {new Date(c.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                  Creado el {formatDayMonthYear(new Date(c.created_at))}
                 </p>
                 <Button variant="outline" size="sm" className="w-full" disabled={entering === c.id} onClick={() => handleEnter(c.id)}>
                   <LogIn /> {entering === c.id ? "Entrando…" : "Entrar"}

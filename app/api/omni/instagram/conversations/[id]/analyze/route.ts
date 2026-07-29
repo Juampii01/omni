@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireInternal } from "@/lib/auth/api-guards"
+import { requireInternal, getJwt } from "@/lib/auth/api-guards"
 import { runConversationAnalysis, ConversationAnalysisError } from "@/lib/omni/conversation-analysis"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
+import { checkRateLimit } from "@/lib/omni/rate-limit"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireInternal(getJwt(req))
   if (!ctx || !ctx.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  if (!(await checkRateLimit(ctx.clientId, "conversation-analyze", { maxCalls: 5, windowSeconds: 60 }))) {
+    return NextResponse.json({ error: "Demasiadas solicitudes, esperá un momento y volvé a intentar." }, { status: 429 })
+  }
 
   const { id } = await params
 

@@ -2,10 +2,10 @@
 // se engancha en el cron que ya existe (process-automations), no pide un
 // slot de cron nuevo. trigger_config guarda {dayOfWeek, hour, timezone?},
 // campos simples en vez de sintaxis cron, para que sea fácil armar un
-// selector de UI. "Vencido" se resuelve reusando el mismo motor de eventos
-// ya construido (emitOmniEvent) — nunca ejecuta los steps acá directo.
+// selector de UI. "Vencido" encola directo en automation_events (mismo shape
+// que emitOmniEvent, pero en un solo insert masivo para todos los workflows
+// vencidos de esta pasada) — nunca ejecuta los steps acá directo.
 import { createServiceClient } from "@/lib/supabase-service"
-import { emitOmniEvent } from "@/lib/omni/automation-events"
 
 const DEFAULT_TIMEZONE = "America/Argentina/Buenos_Aires"
 const MIN_HOURS_BETWEEN_FIRES = 20
@@ -36,7 +36,7 @@ export async function scanAndEnqueueDueSchedules(): Promise<{ scanned: number; e
 
   if (error) throw new Error(error.message)
 
-  let enqueued = 0
+  const due: Array<{ id: string; client_id: string }> = []
   for (const workflow of workflows ?? []) {
     const config = (workflow.trigger_config as ScheduleConfig) ?? {}
     if (config.dayOfWeek == null || config.hour == null) continue
@@ -49,10 +49,28 @@ export async function scanAndEnqueueDueSchedules(): Promise<{ scanned: number; e
       if (hoursSince < MIN_HOURS_BETWEEN_FIRES) continue
     }
 
-    await emitOmniEvent(workflow.client_id, "schedule.due", { workflowId: workflow.id })
-    await supabase.from("automation_workflows").update({ last_triggered_at: new Date().toISOString() }).eq("id", workflow.id)
-    enqueued++
+    due.push({ id: workflow.id, client_id: workflow.client_id })
   }
 
-  return { scanned: workflows?.length ?? 0, enqueued }
+  if (due.length === 0) return { scanned: workflows?.length ?? 0, enqueued: 0 }
+
+  const { error: eventsError } = await supabase
+    .from("automation_events")
+    .insert(due.map((w) => ({ client_id: w.client_id, event_type: "schedule.due", payload: { workflowId: w.id } })))
+
+  if (eventsError) {
+    console.error(`[automation-schedule] no se pudieron encolar ${due.length} evento(s) schedule.due:`, eventsError.message)
+    return { scanned: workflows?.length ?? 0, enqueued: 0 }
+  }
+
+  const { error: updateError } = await supabase
+    .from("automation_workflows")
+    .update({ last_triggered_at: new Date().toISOString() })
+    .in(
+      "id",
+      due.map((w) => w.id)
+    )
+  if (updateError) console.error(`[automation-schedule] no se pudo actualizar last_triggered_at para ${due.length} workflow(s):`, updateError.message)
+
+  return { scanned: workflows?.length ?? 0, enqueued: due.length }
 }

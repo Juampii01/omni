@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Check, Star, Download, DollarSign, TrendingUp, Receipt } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { useSession } from "@/lib/auth/use-session"
+import { formatDayMonthYear } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
@@ -171,7 +172,7 @@ export default function LeadsPage() {
                   )}
                 </td>
                 <td className="px-5 py-3 text-muted-foreground">
-                  {new Date(lead.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                  {formatDayMonthYear(new Date(lead.created_at))}
                 </td>
               </tr>
             ))}

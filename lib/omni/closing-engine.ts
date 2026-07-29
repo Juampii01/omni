@@ -30,13 +30,19 @@ async function classifyLeadMessage(apiKey: string, leadMessage: string, recentCo
   const msg = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 300,
-    system:
-      "Clasificás UN mensaje de un lead dentro de una conversación de ventas por Instagram. No generás respuesta de ventas, solo clasificás. Categorías, en este orden de prioridad si más de una podría aplicar:\n" +
-      "- senal_de_cierre: dice explícitamente que quiere pagar o arrancar ahora (ej. 'sí, quiero pagar', 'dale, cómo hago para arrancar'). No alcanza con sonar interesado o que la conversación vaya bien.\n" +
-      "- dice_que_no: rechaza explícitamente, sin ambigüedad.\n" +
-      "- pide_humano: pide hablar con una persona real / con el equipo directamente.\n" +
-      "- lo_voy_a_pensar_sin_fecha: dice que lo va a pensar, evaluar, consultar, etc. SIN dar una fecha o momento concreto de cuándo retoma. Si SÍ da una fecha concreta ('te digo el lunes'), es 'ninguna' — no se corta la conversación por eso.\n" +
-      "- ninguna: cualquier otra cosa (pregunta, objeción, avanza la conversación con normalidad).",
+    system: [
+      {
+        type: "text",
+        text:
+          "Clasificás UN mensaje de un lead dentro de una conversación de ventas por Instagram. No generás respuesta de ventas, solo clasificás. Categorías, en este orden de prioridad si más de una podría aplicar:\n" +
+          "- senal_de_cierre: dice explícitamente que quiere pagar o arrancar ahora (ej. 'sí, quiero pagar', 'dale, cómo hago para arrancar'). No alcanza con sonar interesado o que la conversación vaya bien.\n" +
+          "- dice_que_no: rechaza explícitamente, sin ambigüedad.\n" +
+          "- pide_humano: pide hablar con una persona real / con el equipo directamente.\n" +
+          "- lo_voy_a_pensar_sin_fecha: dice que lo va a pensar, evaluar, consultar, etc. SIN dar una fecha o momento concreto de cuándo retoma. Si SÍ da una fecha concreta ('te digo el lunes'), es 'ninguna' — no se corta la conversación por eso.\n" +
+          "- ninguna: cualquier otra cosa (pregunta, objeción, avanza la conversación con normalidad).",
+        cache_control: { type: "ephemeral" },
+      },
+    ],
     tools: [
       {
         name: "classify_message",
@@ -231,7 +237,7 @@ async function generateAndSend(
     const msg = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 800,
-      system: systemPrompt,
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: `Conversación hasta ahora:\n${recentContext}\n\nGenerá tu próximo mensaje al lead.` }],
     })
     const block = msg.content.find((b) => b.type === "text")

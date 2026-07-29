@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "node:crypto"
-import { requireInternal } from "@/lib/auth/api-guards"
+import { requireInternal, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
 
 export async function GET(req: NextRequest) {
   const ctx = await requireInternal(getJwt(req))

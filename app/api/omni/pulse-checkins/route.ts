@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth/api-guards"
+import { requireAuth, getJwt } from "@/lib/auth/api-guards"
 import { createServiceClient } from "@/lib/supabase-service"
 import { listCreateHandlers } from "@/lib/omni/crud-route"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
 
 export const { GET } = listCreateHandlers("pulse_checkins", [])
 

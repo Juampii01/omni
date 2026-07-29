@@ -20,11 +20,15 @@ function isAuthorized(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
+  const supabase = createServiceClient()
+
+  // ai_rate_limit_hits no tiene su propio cron de limpieza — se poda acá,
+  // aprovechando que este cron ya corre cada 5 min.
+  await supabase.from("ai_rate_limit_hits").delete().lt("created_at", new Date(Date.now() - 86_400_000).toISOString())
+
   // Workflows "por horario" no tienen su propio cron — se detectan acá y se
   // encolan como un evento más, reusando el resto del drain de abajo.
   const schedule = await scanAndEnqueueDueSchedules()
-
-  const supabase = createServiceClient()
   const { data: events, error } = await supabase
     .from("automation_events")
     .select("*")

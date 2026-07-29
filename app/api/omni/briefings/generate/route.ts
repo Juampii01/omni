@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireInternal } from "@/lib/auth/api-guards"
+import { requireInternal, getJwt } from "@/lib/auth/api-guards"
 import { runLeadOutcomeAnalysis, LeadOutcomeAnalysisError } from "@/lib/omni/lead-outcome-analysis"
 import { runProspectingRiskAnalysis, ProspectingRiskAnalysisError } from "@/lib/omni/prospecting-risk-analysis"
 import { buildUnansweredDigest } from "@/lib/omni/unanswered-digest"
 import { persistBriefingResult, type BriefingType } from "@/lib/omni/persist-briefing"
-
-function getJwt(req: NextRequest) {
-  const header = req.headers.get("authorization")
-  return header?.startsWith("Bearer ") ? header.slice(7) : null
-}
+import { checkRateLimit } from "@/lib/omni/rate-limit"
 
 export async function POST(req: NextRequest) {
   const ctx = await requireInternal(getJwt(req))
   if (!ctx || !ctx.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  if (!(await checkRateLimit(ctx.clientId, "briefings-generate", { maxCalls: 5, windowSeconds: 60 }))) {
+    return NextResponse.json({ error: "Demasiadas solicitudes, esperá un momento y volvé a intentar." }, { status: 429 })
+  }
 
   const body = await req.json().catch(() => ({}))
   const type = ((body?.type as string) ?? "leads") as BriefingType

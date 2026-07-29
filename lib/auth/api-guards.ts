@@ -1,3 +1,4 @@
+import type { NextRequest } from "next/server"
 import { cookies } from "next/headers"
 import { createServiceClient } from "@/lib/supabase-service"
 import { isInternal } from "@/lib/auth/permissions"
@@ -9,6 +10,11 @@ import { isInternal } from "@/lib/auth/permissions"
  */
 
 const VIEW_AS_COOKIE = "omni_view_as"
+
+export function getJwt(req: NextRequest) {
+  const header = req.headers.get("authorization")
+  return header?.startsWith("Bearer ") ? header.slice(7) : null
+}
 
 async function getProfile(jwt: string | null) {
   if (!jwt) return null
