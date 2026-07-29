@@ -60,7 +60,15 @@ const DISCOVERY_CHECKLIST = `1. **Negocio**: qué vende, a quién, qué modelo (
 9. **Identidad**: cómo debería sentirse/verse el sistema — referencias que le gustaron, tono.
 10. **Prioridades y timeline**: qué necesita ya vs. qué puede esperar, si hay alguna fecha real detrás.`
 
-export function buildDiscoverySystemPrompt({ prospectName, niche }: { prospectName: string; niche?: string | null }): string {
+export function buildDiscoverySystemPrompt({
+  prospectName,
+  niche,
+  priorContext,
+}: {
+  prospectName: string
+  niche?: string | null
+  priorContext?: string | null
+}): string {
   return `Sos el entrevistador de descubrimiento interno de una agencia que construye plataformas de IA a medida para negocios de coaching/consultoría — usando Omni y Smart-Scale (dos sistemas ya construidos) como base de patrones reusables. Estás hablando con ${prospectName}${niche ? `, un prospecto del nicho de ${niche}` : ""}, alguien que todavía NO es cliente — esta conversación nunca la ve, es una herramienta interna para que la agencia entienda qué construirle antes de cotizar o prometer nada.
 
 ## Tu objetivo
@@ -70,7 +78,17 @@ Cubrir, con preguntas concretas y una a la vez (nunca un cuestionario en bloque)
 ## Checklist — cubrir las 10 áreas
 
 ${DISCOVERY_CHECKLIST}
+${
+  priorContext
+    ? `
+## Contexto previo ya conocido (aportado por la agencia antes de esta charla)
 
+${priorContext}
+
+Esto es información sobre el negocio de ${prospectName} específicamente, ya conversada por fuera de esta herramienta. No le preguntes a ${prospectName} por lo que ya está acá arriba — dalo por sabido, mencionalo solo si hace falta confirmarlo o profundizarlo, y enfocá tus preguntas en las áreas del checklist que este contexto todavía no cubre.
+`
+    : ""
+}
 ## Qué NO hacer
 
 - No prometas plazos, precios, ni que algo puntual "se va a construir" — vos solo indagás, la decisión de qué y cuándo la toma la agencia después, con tu resumen como insumo.
@@ -84,6 +102,44 @@ ${CAPABILITY_CATALOG}
 ## Tono
 
 Directo, curioso, profesional — como haría un buen ingeniero de ventas en una llamada de descubrimiento real. Nada de lenguaje de atención al cliente genérico ni de vendedor agresivo.`
+}
+
+/**
+ * Genera el primer mensaje de la entrevista cuando ya hay contexto previo
+ * cargado y el prospecto todavía no escribió nada — deja explícito que la
+ * agencia ya aportó información, para que se sienta como continuar algo
+ * empezado y no como un formulario en blanco.
+ */
+export async function generateDiscoveryOpening({
+  prospectName,
+  niche,
+  priorContext,
+}: {
+  prospectName: string
+  niche?: string | null
+  priorContext: string
+}): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY en el servidor")
+
+  const anthropic = new Anthropic({ apiKey })
+  const systemPrompt = buildDiscoverySystemPrompt({ prospectName, niche, priorContext })
+  const msg = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 500,
+    system: [{ type: "text", text: systemPrompt }],
+    messages: [
+      {
+        role: "user",
+        content:
+          "Escribí el mensaje de apertura para arrancar la entrevista — el prospecto todavía no escribió nada. Dejá explícito, en un tono natural (sin sonar robótico ni listar datos en bloque), que ya tenés algo de contexto previo sobre su negocio, y cerrá con UNA sola pregunta concreta para arrancar a partir de lo que el checklist todavía no cubre.",
+      },
+    ],
+  })
+
+  const block = msg.content.find((b) => b.type === "text")
+  if (block?.type !== "text" || !block.text) throw new Error("No se pudo generar el mensaje de apertura")
+  return block.text
 }
 
 const SUBMIT_DISCOVERY_SUMMARY_TOOL: Anthropic.Tool = {

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const supabase = createServiceClient()
   const { data: session, error: fetchError } = await supabase
     .from("discovery_sessions")
-    .select("id, prospect_name, niche, status, messages")
+    .select("id, prospect_name, niche, status, messages, prior_context")
     .eq("id", id)
     .maybeSingle()
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const history = (session.messages as DiscoveryMessage[]) ?? []
-  const systemPrompt = buildDiscoverySystemPrompt({ prospectName: session.prospect_name, niche: session.niche })
+  const systemPrompt = buildDiscoverySystemPrompt({ prospectName: session.prospect_name, niche: session.niche, priorContext: session.prior_context })
 
   const anthropic = new Anthropic({ apiKey })
   let reply: string

@@ -36,9 +36,50 @@ type Session = {
   converted_client_id: string | null
   share_token: string | null
   submitted_at: string | null
+  prior_context: string | null
 }
 
 const EFFORT_VARIANT: Record<string, "default" | "outline" | "secondary"> = { bajo: "default", medio: "secondary", alto: "outline" }
+
+function PriorContextSection({ session, onSaved }: { session: Session; onSaved: (item: Session) => void }) {
+  const [value, setValue] = useState(session.prior_context ?? "")
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    const res = await fetchWithAuth(`/api/admin/discovery/${session.id}`, { method: "PATCH", body: JSON.stringify({ priorContext: value }) })
+    const data = await res.json()
+    setSaving(false)
+    if (!res.ok) {
+      toast.error(data.error ?? "No se pudo guardar el contexto")
+      return
+    }
+    onSaved(data.item)
+    toast.success(session.messages.length === 0 && value.trim() ? "Contexto guardado — mensaje de apertura generado" : "Contexto guardado")
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Contexto previo</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Textarea
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Lo que ya sabés de este prospecto (ej. lo hablado por WhatsApp) — la IA lo va a dar por sabido en vez de volver a preguntarlo."
+          rows={4}
+        />
+        <p className="text-xs text-muted-foreground">
+          Solo información sobre el negocio de {session.prospect_name} — nunca menciones acá la configuración de otro cliente real.
+        </p>
+        <Button size="sm" variant="secondary" onClick={handleSave} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar contexto"}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function DiscoverySessionPage() {
   const { id } = useParams<{ id: string }>()
@@ -206,6 +247,8 @@ export default function DiscoverySessionPage() {
           )}
         </div>
       </div>
+
+      <PriorContextSection session={session} onSaved={(item) => setSession(item)} />
 
       <div className="flex h-[28rem] flex-col rounded-2xl border border-border/60 p-4">
         <div className="flex-1 space-y-4 overflow-y-auto pr-1">

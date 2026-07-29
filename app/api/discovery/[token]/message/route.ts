@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const supabase = createServiceClient()
   const { data: session, error: fetchError } = await supabase
     .from("discovery_sessions")
-    .select("id, prospect_name, niche, messages, submitted_at")
+    .select("id, prospect_name, niche, messages, submitted_at, prior_context")
     .eq("share_token", token)
     .maybeSingle()
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (session.submitted_at) return NextResponse.json({ error: "Ya enviaste tus respuestas" }, { status: 400 })
 
   const history = (session.messages as DiscoveryMessage[]) ?? []
-  const systemPrompt = buildDiscoverySystemPrompt({ prospectName: session.prospect_name, niche: session.niche })
+  const systemPrompt = buildDiscoverySystemPrompt({ prospectName: session.prospect_name, niche: session.niche, priorContext: session.prior_context })
 
   const anthropic = new Anthropic({ apiKey })
   let reply: string

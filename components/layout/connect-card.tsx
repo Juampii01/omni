@@ -9,11 +9,13 @@ export function ConnectCard({
   title,
   description,
   cta,
+  onConnect,
 }: {
   icon: React.ElementType
   title: string
   description: string
   cta: string
+  onConnect?: () => void
 }) {
   return (
     <Card className="border-dashed">
@@ -25,7 +27,10 @@ export function ConnectCard({
           <p className="font-heading text-lg">{title}</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
         </div>
-        <Button className="mt-2" onClick={() => toast.info("Todavía no está disponible — falta configurar la integración.")}>
+        <Button
+          className="mt-2"
+          onClick={onConnect ?? (() => toast.info("Todavía no está disponible — falta configurar la integración."))}
+        >
           {cta}
         </Button>
       </CardContent>
