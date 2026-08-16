@@ -281,7 +281,7 @@ export default function LandingPage() {
             </div>
             <div className="foot-cols">
               <div className="fcol"><h6>Producto</h6><a href="#modulos">Todo lo que hace</a><a href="#problema">Cómo funciona</a><a href="#instancia">Tu instancia</a><a href="#demo">Demo</a></div>
-              <div className="fcol"><h6>Empresa</h6><Link href="/privacy">Privacidad</Link><a href="#demo">Contacto</a></div>
+              <div className="fcol"><h6>Empresa</h6><Link href="/privacidad">Privacidad</Link><Link href="/terminos">Términos</Link><a href="#demo">Contacto</a></div>
               <div className="fcol"><h6>Cuenta</h6><Link href="/login">Entrar</Link><a href="#demo">Agendá una demo</a></div>
             </div>
           </div>

@@ -1,0 +1,41 @@
+/* Estilos de las páginas legales (Privacidad / Términos) — scopeados a .legal.
+   Diseño limpio y legible, con acento verde de Omni. */
+.legal {
+  --ink: #151b23;
+  --ink-soft: #4a5765;
+  --rule: #dbe1e8;
+  --paper: #fbfcfd;
+  --accent: #16b85f;
+  --accent-wash: #e7f5ee;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.legal * { box-sizing: border-box; }
+.legal .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px 96px; }
+.legal header { border-bottom: 2px solid var(--ink); padding: 56px 0 24px; margin-bottom: 48px; }
+.legal .eyebrow { font-family: var(--font-hanken), system-ui, sans-serif; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+.legal h1 { font-family: var(--font-hanken), system-ui, sans-serif; font-size: clamp(30px, 6vw, 44px); font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 0 0 16px; }
+.legal .meta { font-family: var(--font-hanken), system-ui, sans-serif; font-size: 13px; color: var(--ink-soft); margin: 0; }
+.legal h2 { font-family: var(--font-hanken), system-ui, sans-serif; font-size: 19px; font-weight: 600; letter-spacing: -.01em; margin: 44px 0 14px; padding-top: 20px; border-top: 1px solid var(--rule); display: flex; gap: 14px; align-items: baseline; }
+.legal h2 .num { color: var(--accent); font-size: 13px; font-variant-numeric: tabular-nums; flex: none; }
+.legal h3 { font-family: var(--font-hanken), system-ui, sans-serif; font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
+.legal p { margin: 0 0 14px; }
+.legal ul { margin: 0 0 14px; padding-left: 20px; }
+.legal li { margin-bottom: 7px; }
+.legal a { color: var(--accent); text-underline-offset: 3px; }
+.legal a:hover { text-decoration-thickness: 2px; }
+.legal .callout { background: var(--accent-wash); border-left: 3px solid var(--accent); padding: 18px 20px; margin: 22px 0; font-size: 16px; }
+.legal .callout p:last-child { margin-bottom: 0; }
+.legal .contact { margin-top: 56px; padding: 24px; border: 1px solid var(--rule); background: #fff; }
+.legal .contact p { margin-bottom: 6px; }
+.legal .contact h3 { margin-top: 0; }
+.legal footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule); font-family: var(--font-hanken), system-ui, sans-serif; font-size: 13px; color: var(--ink-soft); }
+@media (max-width: 520px) {
+  .legal { font-size: 16px; }
+  .legal h2 { flex-direction: column; gap: 4px; }
+}
