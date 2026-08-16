@@ -18,30 +18,30 @@ import { DemoForm } from "@/components/landing/demo-form"
 import { LandingFx } from "@/components/landing/landing-fx"
 
 export const metadata: Metadata = {
-  title: "Omni — El sistema operativo de todo tu negocio",
+  title: "Nova Softwares — El sistema operativo de todo tu negocio",
   description:
     "Operación, clientes, conversaciones, equipo, tareas, métricas y automatizaciones en una sola plataforma —con una IA que te dice qué hacer. Tu instancia privada. Agendá una demo.",
   openGraph: {
-    title: "Omni — El sistema operativo de todo tu negocio",
+    title: "Nova Softwares — El sistema operativo de todo tu negocio",
     description:
       "Todo tu negocio en un lugar, y una IA que te dice qué hacer con eso. Tu instancia privada. Agendá una demo.",
     type: "website",
     locale: "es_AR",
-    siteName: "Omni",
+    siteName: "Nova Softwares",
   },
-  twitter: { card: "summary_large_image", title: "Omni", description: "El sistema operativo de todo tu negocio." },
+  twitter: { card: "summary_large_image", title: "Nova Softwares", description: "El sistema operativo de todo tu negocio." },
 }
 
 const MODULES: { n: string; icon: React.ElementType; title: string; text: string; feat?: boolean }[] = [
   { n: "01", icon: Users, title: "Clientes", text: "Ficha viva de cada cliente: historial, estado, resultados y todo lo hablado. El CRM, sin un CRM aparte." },
   { n: "02", icon: MessageCircle, title: "Conversaciones", text: "Bandeja unificada: WhatsApp, Instagram y mail en un solo lugar. Nada se te pasa, nada queda sin responder." },
-  { n: "03", icon: MessagesSquare, title: "Equipo & chat interno", text: "Tu equipo coordina adentro de Omni, junto al cliente del que están hablando. Sin saltar a otra app." },
+  { n: "03", icon: MessagesSquare, title: "Equipo & chat interno", text: "Tu equipo coordina adentro de Nova Softwares, junto al cliente del que están hablando. Sin saltar a otra app." },
   { n: "04", icon: CheckSquare, title: "Tareas & proyectos", text: "Quién hace qué y para cuándo. Tareas atadas a clientes y a resultados, no perdidas en una planilla." },
   { n: "05", icon: TrendingUp, title: "Leads & pipeline", text: "Cada lead calificado y puntuado automáticamente. Sabés qué seguir hoy y por qué." },
   { n: "06", icon: BarChart3, title: "Métricas & KPIs", text: "Tus números reales en tiempo real. No más planillas que arrastrás a mano cada lunes." },
   { n: "07", icon: LayoutGrid, title: "Contenido & redes", text: "Calendario, ángulos y piezas conectados a las ventas que generan. Sabés qué post trajo plata." },
   { n: "08", icon: Zap, title: "Automatizaciones", text: "Seguimientos, secuencias y disparadores que corren solos mientras vos y tu equipo deciden." },
-  { n: "09", icon: Sparkles, title: "Omni Intelligence", text: "La capa que lee todo tu negocio —clientes, equipo, números— y te dice qué hacer a continuación.", feat: true },
+  { n: "09", icon: Sparkles, title: "Nova Intelligence", text: "La capa que lee todo tu negocio —clientes, equipo, números— y te dice qué hacer a continuación.", feat: true },
 ]
 
 const TRUST = [
@@ -64,7 +64,7 @@ export default function LandingPage() {
       <nav id="lp-nav">
         <div className="nav-in">
           <a href="#top" className="brand">
-            <span className="mark">O</span>Omni
+            <span className="mark">N</span>Nova Softwares
           </a>
           <div className="nav-r">
             <a href="#problema" className="txt">Producto</a>
@@ -99,7 +99,7 @@ export default function LandingPage() {
             <div className="panel">
               <div className="topbar">
                 <span className="dot" /><span className="dot" /><span className="dot" />
-                <span className="title">omni · tu instancia · hoy</span>
+                <span className="title">nova softwares · tu instancia · hoy</span>
                 <span className="live"><span className="pulse" />EQUIPO EN LÍNEA</span>
               </div>
               <div className="dash">
@@ -149,7 +149,7 @@ export default function LandingPage() {
                   <div className="ai">
                     <div className="glyph">O</div>
                     <div className="body">
-                      <div className="t">Qué hacer hoy · Omni Intelligence</div>
+                      <div className="t">Qué hacer hoy · Nova Intelligence</div>
                       <p>
                         Tenés <b>12 conversaciones sin responder</b> de leads A — respondé primero a Mara (alta intención). El
                         ángulo <b>«sin lanzamientos»</b> trajo 3× más agendas esta semana: conviene reforzarlo mañana.
@@ -198,7 +198,7 @@ export default function LandingPage() {
             Todo el negocio en un lugar.<br />Y algo que te dice <em>qué hacer.</em>
           </h2>
           <p className="sub reveal d2">
-            Omni junta clientes, conversaciones, equipo, tareas, leads, métricas, KPIs, contenido, redes y automatizaciones.
+            Nova Softwares junta clientes, conversaciones, equipo, tareas, leads, métricas, KPIs, contenido, redes y automatizaciones.
             Dejás de saltar entre pestañas y empezás a operar tu negocio entero desde un solo lugar.
           </p>
         </div>
@@ -242,7 +242,7 @@ export default function LandingPage() {
         <div className="wrap">
           <span className="kicker reveal">Tu instancia</span>
           <h2 className="reveal d1">
-            No compartís Omni<br />con nadie. <em>Es tuyo.</em>
+            No compartís Nova Softwares<br />con nadie. <em>Es tuyo.</em>
           </h2>
           <p className="sub reveal d2">
             Cada negocio corre en una instancia dedicada y privada. Tus clientes, tus conversaciones, tu equipo y tus números
@@ -259,7 +259,7 @@ export default function LandingPage() {
             Operá todo tu negocio<br />desde <em>un solo lugar.</em>
           </h2>
           <p className="reveal d1">
-            Agendá una demo de 20 minutos y te mostramos tu negocio entero adentro de Omni —con tus clientes, tu equipo y tus
+            Agendá una demo de 20 minutos y te mostramos tu negocio entero adentro de Nova Softwares —con tus clientes, tu equipo y tus
             datos en una sola pantalla.
           </p>
           <div className="form-wrap reveal d2">
@@ -273,7 +273,7 @@ export default function LandingPage() {
         <div className="wrap">
           <div className="foot">
             <div>
-              <a href="#top" className="brand"><span className="mark">O</span>Omni</a>
+              <a href="#top" className="brand"><span className="mark">N</span>Nova Softwares</a>
               <p className="tag2">
                 El sistema operativo de todo tu negocio. Operá, comunicáte, coordiná y medí —todo en un lugar, y algo que te
                 dice qué hacer con eso.
@@ -286,7 +286,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="copy">
-            <span>© {new Date().getFullYear()} Omni — Tu propio sistema operativo.</span>
+            <span>© {new Date().getFullYear()} Nova Softwares — Tu propio sistema operativo.</span>
             <span>Hecho para operar tu negocio, no para juntar pestañas.</span>
           </div>
         </div>

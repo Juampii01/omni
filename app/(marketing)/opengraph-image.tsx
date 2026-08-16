@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og"
 
-export const alt = "Omni — El sistema operativo de todo tu negocio"
+export const alt = "Nova Softwares — El sistema operativo de todo tu negocio"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -36,7 +36,7 @@ export default function OpengraphImage() {
           >
             O
           </div>
-          <div style={{ fontSize: 34, color: "#eaf2ec", fontFamily: "Georgia, serif" }}>Omni</div>
+          <div style={{ fontSize: 34, color: "#eaf2ec", fontFamily: "Georgia, serif" }}>Nova Softwares</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", fontSize: 62, lineHeight: 1.05, fontFamily: "Georgia, serif", maxWidth: 1000 }}>
           <div style={{ color: "#eaf2ec" }}>El sistema operativo de</div>
