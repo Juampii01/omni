@@ -98,7 +98,7 @@ export default function PrivacidadPage() {
         <div className="contact">
           <h3>Contacto</h3>
           <p><strong>Responsable:</strong> Nova Softwares — Juan Pablo Acosta Caminos</p>
-          <p><strong>Correo:</strong> <a href="mailto:contacto@novasoftwares.space">contacto@novasoftwares.space</a></p>
+          <p><strong>Correo:</strong> <a href="mailto:juanpablo@novasoftwares.space">juanpablo@novasoftwares.space</a></p>
           <p><strong>Domicilio:</strong> 25 de Mayo 60, Piso 2 Depto D — Junín, Buenos Aires (CP 6000), Argentina</p>
         </div>
 
