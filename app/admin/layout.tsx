@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 const ADMIN_TABS = [
   { href: "/admin", label: "Clientes" },
   { href: "/admin/discovery", label: "Descubrimiento" },
+  { href: "/admin/proyectos", label: "Proyectos" },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
