@@ -55,9 +55,22 @@ const TRUST = [
   "Reportes manuales",
 ]
 
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Nova Softwares",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: "https://www.novasoftwares.space",
+  description:
+    "Nova Softwares conecta tus cuentas de YouTube e Instagram y centraliza tus métricas de rendimiento en un solo panel para que mejores tu contenido, junto con la gestión de clientes, equipo, tareas y automatizaciones de tu negocio.",
+  publisher: { "@type": "Organization", name: "Nova Softwares", url: "https://www.novasoftwares.space" },
+}
+
 export default function LandingPage() {
   return (
     <div className="lp">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <LandingFx />
 
       {/* NAV */}
