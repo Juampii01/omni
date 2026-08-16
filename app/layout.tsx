@@ -22,8 +22,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Omni",
-  description: "El mentor de IA 24/7 de tu negocio.",
+  title: "Nova Softwares",
+  description: "El sistema operativo de todo tu negocio: clientes, conversaciones, equipo, tareas, métricas y automatizaciones en una sola plataforma, con IA que te dice qué hacer.",
 };
 
 export default function RootLayout({

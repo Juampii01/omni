@@ -85,8 +85,9 @@ export default function LandingPage() {
             <em>todo tu negocio.</em>
           </h1>
           <p className="lede reveal in d2">
-            Operación, comunicación con clientes, equipo, tareas, métricas y automatizaciones —el servicio completo, en una
-            sola plataforma. Y una capa de inteligencia que no se queda en los números: te dice qué hacer con todo eso.
+            <strong>Nova Softwares</strong> es la plataforma que centraliza todo tu negocio: operación, comunicación con
+            clientes, equipo, tareas, métricas y automatizaciones —en una sola pantalla. Y una capa de inteligencia que no se
+            queda en los números: te dice qué hacer con todo eso.
           </p>
           <div className="hero-cta reveal in d3">
             <a href="#demo" className="btn btn-primary">Agendá una demo <span className="arr">→</span></a>
