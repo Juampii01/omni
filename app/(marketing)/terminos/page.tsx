@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Condiciones del Servicio — Omni",
-  description: "Condiciones que regulan el uso de Omni: cuenta, uso aceptable, servicios de terceros, responsabilidad y jurisdicción.",
+  title: "Condiciones del Servicio — Nova Softwares",
+  description: "Condiciones que regulan el uso de Nova Softwares: cuenta, uso aceptable, servicios de terceros, responsabilidad y jurisdicción.",
 }
 
 export default function TerminosPage() {
@@ -14,15 +14,15 @@ export default function TerminosPage() {
         <header>
           <p className="eyebrow">Documento legal</p>
           <h1>Condiciones del Servicio</h1>
-          <p className="meta">Última actualización: 15 de agosto de 2026 · Omni</p>
+          <p className="meta">Última actualización: 15 de agosto de 2026 · Nova Softwares</p>
         </header>
 
-        <p>Estas condiciones regulan el uso de Omni (en adelante, «la Plataforma»), un producto de <strong>Nova Softwares</strong>, operado por <strong>Acosta Caminos Juan Pablo</strong>, con domicilio en 25 de Mayo 60, Piso 2 Depto D, Junín, Provincia de Buenos Aires (CP 6000), Argentina.</p>
+        <p>Estas condiciones regulan el uso de <strong>Nova Softwares</strong> (en adelante, «la Plataforma»), operado por <strong>Juan Pablo Acosta Caminos</strong>, con domicilio en 25 de Mayo 60, Piso 2 Depto D, Junín, Provincia de Buenos Aires (CP 6000), Argentina.</p>
 
         <p>Al crear una cuenta o conectar una red social, aceptás estas condiciones en su totalidad. Si no estás de acuerdo con alguna parte, no uses el servicio.</p>
 
         <h2><span className="num">01</span> Qué hace la Plataforma</h2>
-        <p>Omni permite conectar cuentas de YouTube e Instagram para centralizar en un solo panel las métricas de rendimiento y las conversaciones entrantes, y responder desde ahí.</p>
+        <p>Nova Softwares permite conectar cuentas de YouTube e Instagram para centralizar en un solo panel las métricas de rendimiento y las conversaciones entrantes, y responder desde ahí.</p>
         <p>La Plataforma es una herramienta independiente. No está afiliada, patrocinada ni respaldada por Google LLC, YouTube ni Meta Platforms, Inc.</p>
 
         <h2><span className="num">02</span> Cuenta y responsabilidad del usuario</h2>
@@ -45,7 +45,7 @@ export default function TerminosPage() {
         </ul>
 
         <div className="callout">
-          <p>Al conectar tu canal de YouTube, quedás vinculado por los <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">Términos de Servicio de YouTube</a>. Al conectar Instagram, por las condiciones de Meta. El incumplimiento de esas condiciones puede provocar la suspensión de tu acceso, tanto en la plataforma de origen como en Omni.</p>
+          <p>Al conectar tu canal de YouTube, quedás vinculado por los <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">Términos de Servicio de YouTube</a>. Al conectar Instagram, por las condiciones de Meta. El incumplimiento de esas condiciones puede provocar la suspensión de tu acceso, tanto en la plataforma de origen como en Nova Softwares.</p>
         </div>
 
         <h2><span className="num">04</span> Servicios de terceros</h2>
@@ -80,7 +80,7 @@ export default function TerminosPage() {
 
         <div className="contact">
           <h3>Contacto</h3>
-          <p><strong>Titular:</strong> Nova Softwares — Acosta Caminos Juan Pablo</p>
+          <p><strong>Titular:</strong> Nova Softwares — Juan Pablo Acosta Caminos</p>
           <p><strong>Correo:</strong> <a href="mailto:contacto@novasoftwares.space">contacto@novasoftwares.space</a></p>
           <p><strong>Domicilio:</strong> 25 de Mayo 60, Piso 2 Depto D — Junín, Buenos Aires (CP 6000), Argentina</p>
         </div>

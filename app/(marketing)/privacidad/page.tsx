@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad — Omni",
-  description: "Qué datos recopila Omni, con qué finalidad los usa, cuánto los conserva y cómo revocar el acceso.",
+  title: "Política de Privacidad — Nova Softwares",
+  description: "Qué datos recopila Nova Softwares, con qué finalidad los usa, cuánto los conserva y cómo revocar el acceso.",
 }
 
 export default function PrivacidadPage() {
@@ -14,12 +14,12 @@ export default function PrivacidadPage() {
         <header>
           <p className="eyebrow">Documento legal</p>
           <h1>Política de Privacidad</h1>
-          <p className="meta">Última actualización: 15 de agosto de 2026 · Omni</p>
+          <p className="meta">Última actualización: 15 de agosto de 2026 · Nova Softwares</p>
         </header>
 
-        <p>Esta política explica qué datos recopila Omni (en adelante, «la Plataforma»), con qué finalidad los usa, cuánto tiempo los conserva y cómo podés revocar el acceso en cualquier momento.</p>
+        <p>Esta política explica qué datos recopila Nova Softwares (en adelante, «la Plataforma»), con qué finalidad los usa, cuánto tiempo los conserva y cómo podés revocar el acceso en cualquier momento.</p>
 
-        <p>Omni es un producto de <strong>Nova Softwares</strong>, operado por <strong>Acosta Caminos Juan Pablo</strong>, con domicilio en 25 de Mayo 60, Piso 2 Depto D, Junín, Provincia de Buenos Aires (CP 6000), Argentina.</p>
+        <p><strong>Nova Softwares</strong> es una plataforma operada por <strong>Juan Pablo Acosta Caminos</strong>, con domicilio en 25 de Mayo 60, Piso 2 Depto D, Junín, Provincia de Buenos Aires (CP 6000), Argentina.</p>
 
         <h2><span className="num">01</span> Qué datos recopilamos</h2>
 
@@ -97,7 +97,7 @@ export default function PrivacidadPage() {
 
         <div className="contact">
           <h3>Contacto</h3>
-          <p><strong>Responsable:</strong> Nova Softwares — Acosta Caminos Juan Pablo</p>
+          <p><strong>Responsable:</strong> Nova Softwares — Juan Pablo Acosta Caminos</p>
           <p><strong>Correo:</strong> <a href="mailto:contacto@novasoftwares.space">contacto@novasoftwares.space</a></p>
           <p><strong>Domicilio:</strong> 25 de Mayo 60, Piso 2 Depto D — Junín, Buenos Aires (CP 6000), Argentina</p>
         </div>

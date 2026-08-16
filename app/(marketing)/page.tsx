@@ -300,7 +300,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="copy">
-            <span>© {new Date().getFullYear()} Nova Softwares — Tu propio sistema operativo.</span>
+            <span>© {new Date().getFullYear()} Nova Softwares · Juan Pablo Acosta Caminos — Tu propio sistema operativo.</span>
             <span>Hecho para operar tu negocio, no para juntar pestañas.</span>
           </div>
         </div>
