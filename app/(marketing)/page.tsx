@@ -92,10 +92,10 @@ export default function LandingPage() {
       {/* HERO */}
       <header id="top">
         <div className="wrap">
-          <span className="eyebrow reveal in">Tu propio sistema operativo</span>
+          <span className="eyebrow reveal in">Nova Softwares</span>
           <h1 className="reveal in d1">
-            El sistema operativo de<br />
-            <em>todo tu negocio.</em>
+            Nova Softwares: el sistema<br />
+            operativo de <em>todo tu negocio.</em>
           </h1>
           <p className="lede reveal in d2">
             <strong>Nova Softwares</strong> conecta tus cuentas de <strong>YouTube</strong> e <strong>Instagram</strong> y
