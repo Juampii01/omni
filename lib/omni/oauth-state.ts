@@ -4,7 +4,7 @@
 
 import { createServiceClient } from "@/lib/supabase-service"
 
-export async function consumeOAuthState(state: string, provider: "instagram" | "slack"): Promise<string | null> {
+export async function consumeOAuthState(state: string, provider: "instagram" | "slack" | "youtube"): Promise<string | null> {
   const supabase = createServiceClient()
   const { data } = await supabase.from("oauth_states").select("client_id, provider, expires_at").eq("state", state).maybeSingle()
   if (!data) return null

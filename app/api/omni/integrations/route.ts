@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from("client_config")
-    .select("ig_account_username, ig_connected_at, slack_team_name, slack_connected_at")
+    .select("ig_account_username, ig_connected_at, slack_team_name, slack_connected_at, yt_channel_title, yt_connected_at")
     .eq("client_id", ctx.clientId)
     .maybeSingle()
 
@@ -18,5 +18,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     instagram: { connected: !!data?.ig_connected_at, username: data?.ig_account_username ?? null, connectedAt: data?.ig_connected_at ?? null },
     slack: { connected: !!data?.slack_connected_at, teamName: data?.slack_team_name ?? null, connectedAt: data?.slack_connected_at ?? null },
+    youtube: { connected: !!data?.yt_connected_at, channelTitle: data?.yt_channel_title ?? null, connectedAt: data?.yt_connected_at ?? null },
   })
 }

@@ -24,6 +24,7 @@ import {
   CalendarDays,
   Zap,
   HeartPulse,
+  Play,
   Menu,
   X,
 } from "lucide-react"
@@ -62,6 +63,7 @@ const NAV_GROUPS = [
       { href: "/dashboard/community", label: "Comunidad", icon: Hash },
       { href: "/dashboard/conversations", label: "Conversaciones", icon: AtSign },
       { href: "/dashboard/content", label: "Contenido", icon: Lightbulb },
+      { href: "/dashboard/youtube", label: "YouTube", icon: Play },
       { href: "/dashboard/docs", label: "Documentos", icon: FileText },
       { href: "/dashboard/sops", label: "SOPs", icon: ClipboardList },
     ],

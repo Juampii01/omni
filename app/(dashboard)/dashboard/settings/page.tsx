@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Hash, AtSign, User, Plus, History } from "lucide-react"
+import { Hash, AtSign, User, Plus, History, Play } from "lucide-react"
 import { toast } from "sonner"
 import { useSession } from "@/lib/auth/use-session"
 import { fetchWithAuth } from "@/lib/api-client"
@@ -105,6 +105,56 @@ function InstagramRow() {
             {syncing ? "Sincronizando…" : "Sincronizar ahora"}
           </Button>
         </div>
+      ) : (
+        <Button size="sm" onClick={handleConnect} disabled={connecting}>
+          {connecting ? "Redirigiendo…" : "Conectar"}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function YouTubeRow() {
+  const [status, setStatus] = useState<{ connected: boolean; channelTitle: string | null } | null>(null)
+  const [connecting, setConnecting] = useState(false)
+
+  async function load() {
+    const res = await fetchWithAuth("/api/omni/integrations")
+    const data = await res.json()
+    setStatus(data.youtube ?? { connected: false, channelTitle: null })
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  async function handleConnect() {
+    setConnecting(true)
+    const res = await fetchWithAuth("/api/omni/youtube/connect", { method: "POST" })
+    const data = await res.json()
+    setConnecting(false)
+    if (!res.ok || !data.url) {
+      toast.error(data.error ?? "No se pudo iniciar la conexión")
+      return
+    }
+    window.location.href = data.url
+  }
+
+  return (
+    <div className="flex items-center justify-between py-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
+          <Play className="h-4 w-4 text-accent-foreground" strokeWidth={1.75} />
+        </div>
+        <div>
+          <p className="text-sm font-medium">YouTube</p>
+          {status?.connected && status.channelTitle && <p className="text-xs text-muted-foreground">{status.channelTitle}</p>}
+        </div>
+      </div>
+      {status === null ? (
+        <Badge variant="outline">Cargando…</Badge>
+      ) : status.connected ? (
+        <Badge>Conectado</Badge>
       ) : (
         <Button size="sm" onClick={handleConnect} disabled={connecting}>
           {connecting ? "Redirigiendo…" : "Conectar"}
@@ -305,6 +355,8 @@ export default function SettingsPage() {
           <IntegrationRow icon={Hash} label="Slack" connected={false} />
           <Separator />
           <InstagramRow />
+          <Separator />
+          <YouTubeRow />
         </CardContent>
       </Card>
 
