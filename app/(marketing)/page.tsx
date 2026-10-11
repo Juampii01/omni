@@ -38,7 +38,7 @@ const MODULES: { n: string; icon: React.ElementType; title: string; text: string
   { n: "03", icon: MessagesSquare, title: "Equipo & chat interno", text: "Tu equipo coordina adentro de Nova Softwares, junto al cliente del que están hablando. Sin saltar a otra app." },
   { n: "04", icon: CheckSquare, title: "Tareas & proyectos", text: "Quién hace qué y para cuándo. Tareas atadas a clientes y a resultados, no perdidas en una planilla." },
   { n: "05", icon: TrendingUp, title: "Leads & pipeline", text: "Cada lead calificado y puntuado automáticamente. Sabés qué seguir hoy y por qué." },
-  { n: "06", icon: BarChart3, title: "Métricas de YouTube & Instagram", text: "Conectás tus cuentas y traemos tus métricas de rendimiento (vistas, retención, suscriptores, alcance) a un solo panel en tiempo real. Sin planillas." },
+  { n: "06", icon: BarChart3, title: "Métricas de YouTube & Instagram", text: "Conectás tus cuentas y traemos tus métricas de rendimiento (vistas, me gusta, suscriptores, alcance) a un solo panel en tiempo real. Sin planillas." },
   { n: "07", icon: LayoutGrid, title: "Contenido & redes", text: "Con tus métricas reales de YouTube e Instagram, entendés qué contenido funciona y mejorás lo que publicás. Calendario, ángulos y piezas en un lugar." },
   { n: "08", icon: Zap, title: "Automatizaciones", text: "Seguimientos, secuencias y disparadores que corren solos mientras vos y tu equipo deciden." },
   { n: "09", icon: Sparkles, title: "Nova Intelligence", text: "La capa que lee todo tu negocio —clientes, equipo, números— y te dice qué hacer a continuación.", feat: true },

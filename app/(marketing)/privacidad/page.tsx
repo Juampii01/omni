@@ -27,11 +27,11 @@ export default function PrivacidadPage() {
         <p>Cuando creás una cuenta, guardamos tu dirección de correo electrónico, tu nombre y la información necesaria para autenticarte.</p>
 
         <h3>Datos de YouTube</h3>
-        <p>Si conectás tu canal de YouTube, accedemos únicamente en modo de solo lectura, mediante la YouTube Data API y la YouTube Analytics API, a:</p>
+        <p>Si conectás tu canal de YouTube, accedemos únicamente en modo de solo lectura, mediante la YouTube Data API, a:</p>
         <ul>
           <li>El nombre, identificador y foto de perfil de tu canal.</li>
           <li>La lista de videos publicados y sus metadatos (título, descripción, fecha).</li>
-          <li>Métricas de rendimiento de YouTube Analytics sobre tu propio canal: visualizaciones, suscriptores ganados y perdidos, tiempo de reproducción, duración media de visualización y retención de audiencia.</li>
+          <li>Las estadísticas de tu canal y de tus videos: suscriptores, visualizaciones, me gusta y comentarios.</li>
         </ul>
         <p>No publicamos, editamos ni eliminamos contenido en tu canal. No accedemos a videos privados salvo que aparezcan dentro del alcance que vos autorizaste.</p>
 
@@ -61,8 +61,7 @@ export default function PrivacidadPage() {
         </div>
 
         <h2><span className="num">03</span> Uso de los Servicios de la API de YouTube</h2>
-        <p>La Plataforma utiliza la YouTube Data API y la YouTube Analytics API, ambas en modo de solo lectura.</p>
-        <p>La Plataforma utiliza los Servicios de la API de YouTube. Al conectar tu canal, aceptás quedar vinculado por los <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">Términos de Servicio de YouTube</a>.</p>
+        <p>La Plataforma utiliza los Servicios de la API de YouTube (YouTube Data API, en modo de solo lectura). Al conectar tu canal, aceptás quedar vinculado por los <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">Términos de Servicio de YouTube</a>.</p>
         <p>El tratamiento que Google da a tu información se rige por la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de Privacidad de Google</a>.</p>
         <p>Podés revocar el acceso de la Plataforma a tus datos de Google en cualquier momento desde la <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">página de permisos de seguridad de tu Cuenta de Google</a>. Al revocarlo, dejamos de acceder a tus datos de YouTube de inmediato y eliminamos la información almacenada dentro de los 30 días.</p>
 
